@@ -42,16 +42,17 @@
 <div class="container">
     <header>
         <h1>STAR CITIZEN: MODULAR OPS LEDGER</h1>
-        <div id="db-count">LOCATIONS: <span id="loc-status">Default</span></div>
+        <div>STATUS: <span id="loc-status" style="color: var(--primary)">Awaiting JSON...</span></div>
     </header>
 
     <div class="toolbar">
-        <button class="btn" style="background:#444; color:white;" onclick="document.getElementById('import-loc').click()">Load locations.json</button>
+        <button class="btn" style="background:#444; color:white;" onclick="document.getElementById('import-loc').click()">1. Load locations.json</button>
         <input type="file" id="import-loc" style="display:none" onchange="importLocations(event)">
         
-        <button class="btn" style="background:#2e7d32; color:white;" onclick="exportToJson()">Export DB</button>
-        <button class="btn" style="background:#1565c0; color:white;" onclick="document.getElementById('import-db').click()">Import DB</button>
+        <button class="btn" style="background:#1565c0; color:white;" onclick="document.getElementById('import-db').click()">2. Import Ledger/Titles</button>
         <input type="file" id="import-db" style="display:none" onchange="importDatabase(event)">
+
+        <button class="btn" style="background:#2e7d32; color:white;" onclick="exportToJson()">Export DB</button>
     </div>
 
     <div id="contract-list"></div>
@@ -60,26 +61,51 @@
 
 <script>
     let globalContractData = [];
-    let titleWordLibrary = new Set(["Bulk", "Haul", "Cargo", "Urgent", "Red", "Wind", "Independent", "Alliance"]);
-    
-    let systemMap = {
-        "Stanton": ["ArcCorp", "Crusader", "Hurston", "microTech"],
-        "Pyro": ["Pyro I", "Bloom"],
-        "Nyx": ["Delamar"]
-    };
+    let titleWordLibrary = new Set(); // Empty by default
+    let systemMap = {}; // Empty by default
 
     const categories = ["Hauling", "Hauling - Interstellar", "Priority"];
 
+    // Function to load the Location JSON
     function importLocations(event) {
         const reader = new FileReader();
         reader.onload = e => {
-            systemMap = JSON.parse(e.target.result);
-            document.getElementById('loc-status').innerText = "Custom File Active";
-            document.querySelectorAll('.contract-card').forEach(card => {
-                const id = card.getAttribute('data-id');
-                updateRegionDropdown(id, 'p');
-                updateRegionDropdown(id, 'd');
-            });
+            try {
+                systemMap = JSON.parse(e.target.result);
+                document.getElementById('loc-status').innerText = "Locations Active";
+                document.getElementById('loc-status').style.color = "#2e7d32";
+                
+                // Refresh any open cards to show new system options
+                document.querySelectorAll('.contract-card').forEach(card => {
+                    const id = card.getAttribute('data-id');
+                    const pSys = document.getElementById(`p-sys-${id}`);
+                    const dSys = document.getElementById(`d-sys-${id}`);
+                    
+                    const options = `<option value="">-- System --</option>` + 
+                        Object.keys(systemMap).map(s => `<option value="${s}">${s}</option>`).join('');
+                    
+                    pSys.innerHTML = options;
+                    dSys.innerHTML = options;
+                });
+            } catch (err) {
+                alert("Error parsing locations.json. Check your syntax.");
+            }
+        };
+        reader.readAsText(event.target.files[0]);
+    }
+
+    // Function to load Titles or Master Database
+    function importDatabase(event) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const data = JSON.parse(e.target.result);
+            if (data.contract_terms) {
+                data.contract_terms.forEach(word => titleWordLibrary.add(word));
+                alert("Title Library Updated");
+            } else {
+                globalContractData = data;
+                alert("Ledger Database Imported");
+            }
         };
         reader.readAsText(event.target.files[0]);
     }
@@ -151,7 +177,6 @@
         const index = document.querySelectorAll(`#p-man-${contractId} .step-row`).length;
         const syncId = `sync-${contractId}-${index}`;
 
-        // Pickup Row: Commodity and SCU
         const phtml = `
             <div class="step-row" id="p-${syncId}">
                 <input type="text" class="m-item" placeholder="Commodity" oninput="syncData('${syncId}')">
@@ -159,12 +184,11 @@
             </div>`;
         document.getElementById(`p-man-${contractId}`).insertAdjacentHTML('beforeend', phtml);
 
-        // Destination Row: Inherited Data + Final Delivery Slot
         const dhtml = `
             <div class="step-row" id="d-${syncId}">
-                <input type="text" id="sync-item-${syncId}" readonly style="opacity:0.6; flex:1;" placeholder="Inherited Item">
-                <input type="number" id="sync-scu-${syncId}" readonly style="opacity:0.6; width:60px;" placeholder="SCU">
-                <input type="text" class="m-final-loc" style="flex:1.5; border: 1px solid var(--primary);" placeholder="Final Delivery Loc (Hangar/Outpost)">
+                <input type="text" id="sync-item-${syncId}" readonly style="opacity:0.6; flex:1;">
+                <input type="number" id="sync-scu-${syncId}" readonly style="opacity:0.6; width:60px;">
+                <input type="text" class="m-final-loc" style="flex:1.5; border: 1px solid var(--primary);" placeholder="Hangar/Pad Slot">
             </div>`;
         document.getElementById(`d-man-${contractId}`).insertAdjacentHTML('beforeend', dhtml);
     }
@@ -176,7 +200,25 @@
         document.getElementById(`sync-scu-${syncId}`).value = pScu;
     }
 
-    // Export includes the new final delivery locations
+    function handleTitlePrediction(input, id) {
+        const val = input.value;
+        const datalist = document.getElementById('dynamic-title-words');
+        const words = val.split(" ");
+        const lastWord = words[words.length - 1].toLowerCase();
+        const prefix = words.slice(0, -1).join(" ");
+        datalist.innerHTML = ''; 
+
+        if (lastWord.length > 0) {
+            Array.from(titleWordLibrary).filter(w => w.toLowerCase().startsWith(lastWord))
+            .forEach(match => {
+                const suggestion = (prefix ? prefix + " " : "") + match;
+                const option = document.createElement('option');
+                option.value = suggestion;
+                datalist.appendChild(option);
+            });
+        }
+    }
+
     function exportToJson() {
         const screenContracts = [];
         document.querySelectorAll('.contract-card').forEach(card => {
@@ -201,7 +243,7 @@
         const blob = new Blob([JSON.stringify(screenContracts, null, 2)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `hauling_ledger_export.json`;
+        a.download = `hauling_ledger.json`;
         a.click();
     }
 </script>
