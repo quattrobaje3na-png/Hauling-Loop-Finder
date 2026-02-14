@@ -118,12 +118,13 @@
 </div>
 
 <script>
+    // Updated Data Structure: Nyx now points to Levski
     const DATA = {
         systems: ["Stanton", "Pyro", "Nyx"],
         regions: {
             "Stanton": ["Crusader", "Hurston", "ArcCorp", "microTech"],
             "Pyro": ["Pyro I", "Pyro II", "Pyro III", "Pyro IV", "Pyro V", "Pyro VI"],
-            "Nyx": ["Delamar", "Nyx II", "Nyx III"]
+            "Nyx": ["Levski", "Nyx II", "Nyx III"]
         },
         materials: ["Laranite", "Gold", "Quartz (Raw)", "Silicon", "Iron (Ore)", "Medical Supplies", "Distilled Spirits", "Processed Food", "Waste", "Stims"]
     };
@@ -137,11 +138,11 @@
                 <div class="row">
                     <div class="input-group">
                         <label>Contract Title</label>
-                        <input type="text" placeholder="e.g. Covalex Independent Haul">
+                        <input type="text" placeholder="e.g. Covalex Cross-System Haul">
                     </div>
                     <div class="input-group" style="flex: 0.5;">
                         <label>Total Payout (aUEC)</label>
-                        <input type="text" placeholder="50,000">
+                        <input type="text" placeholder="150,000">
                     </div>
                 </div>
 
@@ -198,7 +199,7 @@
                 </div>
                 <div class="input-group">
                     <label>Specific Location</label>
-                    <input type="text" placeholder="e.g. Everus Harbor">
+                    <input type="text" placeholder="e.g. Levski Hangar 01">
                 </div>
                 <button class="btn btn-delete" onclick="removeElement('s-${stepId}')">🗑️</button>
             </div>
@@ -218,6 +219,7 @@
         document.getElementById(id).remove();
     }
 
+    // Initialize the first contract
     addContract();
 </script>
 
