@@ -12,81 +12,46 @@
             --text: #e0e0e0;
             --border: #333;
             --accent: #2a2a2a;
-            --minimized: #111;
         }
 
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
         .container { max-width: 1100px; margin: 0 auto; }
+        header { border-bottom: 2px solid var(--primary); margin-bottom: 20px; padding-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .toolbar { background: var(--card); padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px; align-items: center; border: 1px solid var(--border); position: sticky; top: 10px; z-index: 100; }
 
-        header {
-            border-bottom: 2px solid var(--primary);
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .toolbar {
-            background: var(--card);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: flex; gap: 15px; align-items: center;
-            border: 1px solid var(--border);
-            position: sticky; top: 10px; z-index: 100;
-        }
-
-        .contract-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 25px;
-            margin-bottom: 20px;
-            position: relative;
-        }
-
-        .contract-card.minimized { padding: 10px 20px; background: var(--minimized); border-left: 5px solid var(--primary); }
-        .contract-card.minimized .card-content { display: none; }
-
-        .card-controls { position: absolute; right: 15px; top: 10px; display: flex; gap: 10px; }
+        .contract-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 25px; margin-bottom: 20px; position: relative; }
         .section-label { font-size: 0.75rem; color: var(--primary); font-weight: bold; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid var(--border); display: block; }
         .row { display: flex; gap: 20px; margin-bottom: 15px; flex-wrap: wrap; align-items: center; }
         .input-group { flex: 1; min-width: 220px; display: flex; flex-direction: column; }
         
         label { font-size: 0.75rem; color: #888; margin-bottom: 5px; }
         input, select { background: var(--accent); border: 1px solid var(--border); color: white; padding: 10px; border-radius: 4px; }
-        input:focus, select:focus { outline: 1px solid var(--primary); background: #000; }
-
+        
         .manifest-area { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; margin-top: 10px; }
         .step-row { background: #222; padding: 8px; margin-bottom: 5px; border-radius: 4px; display: flex; gap: 10px; border-left: 3px solid var(--primary); }
-
         .btn { cursor: pointer; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; text-transform: uppercase; transition: 0.2s; }
-        .btn-save { background: #2e7d32; color: white; }
-        .btn-load { background: #1565c0; color: white; }
         .btn-add { background: var(--primary); color: white; }
-        .btn-toggle { background: #555; color: white; padding: 5px 10px; font-size: 0.7rem; }
-        .btn-delete { background: #aa0000; color: white; padding: 5px 10px; }
+        .btn-delete { background: #aa0000; color: white; padding: 5px 10px; position: absolute; right: 15px; top: 15px; }
     </style>
 </head>
 <body>
 
 <datalist id="dynamic-title-words"></datalist>
-<datalist id="data-commodities"></datalist>
 
 <div class="container">
     <header>
         <h1>STAR CITIZEN: MODULAR OPS LEDGER</h1>
-        <div id="db-count">DATABASE: 0 CONTRACTS</div>
+        <div id="db-count">LOCATIONS: <span id="loc-status">Default</span></div>
     </header>
 
     <div class="toolbar">
-        <input type="text" id="auto-search" placeholder="Quick-Load Saved Contract..." list="contract-suggestions">
-        <datalist id="contract-suggestions"></datalist>
-        <button class="btn btn-add" onclick="autoFillSelected()">Load</button>
-        <button class="btn btn-save" onclick="exportToJson()">Export DB</button>
-        <input type="file" id="import-file" style="display:none" onchange="importJson(event)">
-        <button class="btn btn-load" onclick="document.getElementById('import-file').click()">Import DB</button>
+        <button class="btn" style="background:#444; color:white;" onclick="document.getElementById('import-loc').click()">Load locations.json</button>
+        <input type="file" id="import-loc" style="display:none" onchange="importLocations(event)">
+        
+        <button class="btn" style="background:#2e7d32; color:white;" onclick="exportToJson()">Export DB</button>
+        <button class="btn" style="background:#1565c0; color:white;" onclick="document.getElementById('import-db').click()">Import DB</button>
+        <input type="file" id="import-db" style="display:none" onchange="importDatabase(event)">
     </div>
 
     <div id="contract-list"></div>
@@ -95,99 +60,80 @@
 
 <script>
     let globalContractData = [];
-    let titleWordLibrary = new Set(["Bulk", "Haul", "Cargo", "Independent", "Urgent", "Red", "Wind", "Alliance", "Distribution"]);
+    let titleWordLibrary = new Set(["Bulk", "Haul", "Cargo", "Urgent", "Red", "Wind", "Independent", "Alliance"]);
     
-    const systemMap = {
-        "Stanton": ["ArcCorp", "Crusader", "Hurston", "microTech", "Levski"],
-        "Pyro": ["Pyro I", "Pyro II", "Pyro III", "Pyro IV", "Pyro V", "Pyro VI", "Bloom", "Checkmate"],
+    let systemMap = {
+        "Stanton": ["ArcCorp", "Crusader", "Hurston", "microTech"],
+        "Pyro": ["Pyro I", "Bloom"],
         "Nyx": ["Delamar"]
     };
 
-    // Updated Category list
     const categories = ["Hauling", "Hauling - Interstellar", "Priority"];
+
+    function importLocations(event) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            systemMap = JSON.parse(e.target.result);
+            document.getElementById('loc-status').innerText = "Custom File Active";
+            document.querySelectorAll('.contract-card').forEach(card => {
+                const id = card.getAttribute('data-id');
+                updateRegionDropdown(id, 'p');
+                updateRegionDropdown(id, 'd');
+            });
+        };
+        reader.readAsText(event.target.files[0]);
+    }
 
     function addContract(initialData = null) {
         const id = Date.now() + Math.floor(Math.random() * 1000);
-        
         const html = `
             <div class="contract-card" id="c-${id}" data-id="${id}">
-                <div class="card-controls">
-                    <button class="btn btn-toggle" onclick="toggleMinimize('${id}')">MIN/MAX</button>
-                    <button class="btn btn-delete" onclick="removeElement('c-${id}')">×</button>
-                </div>
+                <button class="btn btn-delete" onclick="document.getElementById('c-${id}').remove()">×</button>
                 
                 <div class="row">
                     <div class="input-group" style="flex:2">
-                        <label>Contract Title (Adaptive Phrase / Word Prediction)</label>
-                        <input type="text" class="c-name" 
-                               id="title-input-${id}"
-                               list="dynamic-title-words" 
-                               maxlength="100"
-                               onfocus="updateAdaptiveSuggestions('${id}')"
-                               oninput="handleTitlePrediction(this, '${id}')"
-                               value="${initialData?.name || ''}">
+                        <label>Contract Title</label>
+                        <input type="text" class="c-name" list="dynamic-title-words" oninput="handleTitlePrediction(this, '${id}')" value="${initialData?.name || ''}">
+                    </div>
+                    <div class="input-group">
+                        <label>Category</label>
+                        <select class="c-category">
+                            ${categories.map(c => `<option value="${c}">${c}</option>`).join('')}
+                        </select>
                     </div>
                 </div>
 
-                <div class="card-content">
-                    <div class="row">
-                        <div class="input-group">
-                            <label>Category</label>
-                            <select class="c-category" onchange="updateAdaptiveSuggestions('${id}')">
-                                ${categories.map(c => `<option value="${c}" ${initialData?.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+                <div class="row">
+                    <div class="input-group">
+                        <span class="section-label">Origin (Pickup)</span>
+                        <div class="row">
+                            <select class="c-p-system" id="p-sys-${id}" onchange="updateRegionDropdown('${id}', 'p')">
+                                <option value="">-- System --</option>
+                                ${Object.keys(systemMap).map(s => `<option value="${s}">${s}</option>`).join('')}
                             </select>
+                            <select class="c-p-region" id="p-reg-${id}"><option value="">Select System First</option></select>
                         </div>
-                        <div class="input-group">
-                            <label>Payout (aUEC)</label>
-                            <input type="text" class="c-payout" value="${initialData?.payout || ''}">
-                        </div>
+                        <div class="manifest-area" id="p-man-${id}"></div>
+                        <button class="btn" style="font-size:0.7rem" onclick="addManifestItem('${id}')">+ Add Pickup Slot</button>
                     </div>
 
-                    <div class="row">
-                        <div class="input-group">
-                            <span class="section-label">Origin (Pickup)</span>
-                            <div class="row">
-                                <select class="c-p-system" id="p-sys-${id}" onchange="updateRegionList('${id}', 'p')">
-                                    <option value="">-- System --</option>
-                                    ${Object.keys(systemMap).map(s => `<option value="${s}" ${initialData?.pSystem === s ? 'selected' : ''}>${s}</option>`).join('')}
-                                </select>
-                                <select class="c-p-region" id="p-reg-${id}">
-                                    <option value="">-- Select System First --</option>
-                                </select>
-                            </div>
-                            <div class="manifest-area" id="p-man-${id}"></div>
-                            <button class="btn" onclick="addManifestItem('${id}', true)">+ Add Pickup</button>
+                    <div class="input-group">
+                        <span class="section-label">Destination (Delivery)</span>
+                        <div class="row">
+                            <select class="c-d-system" id="d-sys-${id}" onchange="updateRegionDropdown('${id}', 'd')">
+                                <option value="">-- System --</option>
+                                ${Object.keys(systemMap).map(s => `<option value="${s}">${s}</option>`).join('')}
+                            </select>
+                            <select class="c-d-region" id="d-reg-${id}"><option value="">Select System First</option></select>
                         </div>
-                        <div class="input-group">
-                            <span class="section-label">Destination (Delivery)</span>
-                            <div class="row">
-                                <select class="c-d-system" id="d-sys-${id}" onchange="updateRegionList('${id}', 'd')">
-                                    <option value="">-- System --</option>
-                                    ${Object.keys(systemMap).map(s => `<option value="${s}" ${initialData?.dSystem === s ? 'selected' : ''}>${s}</option>`).join('')}
-                                </select>
-                                <select class="c-d-region" id="d-reg-${id}">
-                                    <option value="">-- Select System First --</option>
-                                </select>
-                            </div>
-                            <div class="manifest-area" id="d-man-${id}"></div>
-                        </div>
+                        <div class="manifest-area" id="d-man-${id}"></div>
                     </div>
                 </div>
             </div>`;
-        
         document.getElementById('contract-list').insertAdjacentHTML('beforeend', html);
-        
-        if (initialData?.pSystem) updateRegionList(id, 'p', initialData.pRegion);
-        if (initialData?.dSystem) updateRegionList(id, 'd', initialData.dRegion);
-
-        if (initialData?.pManifest) {
-            initialData.pManifest.forEach((m, index) => {
-                addManifestItem(id, true, m, initialData.dManifest?.[index]?.loc || '');
-            });
-        }
     }
 
-    function updateRegionList(id, type, selectedRegion = "") {
+    function updateRegionDropdown(id, type) {
         const sysVal = document.getElementById(`${type}-sys-${id}`).value;
         const regSelect = document.getElementById(`${type}-reg-${id}`);
         regSelect.innerHTML = '<option value="">-- Region --</option>';
@@ -196,80 +142,31 @@
                 const opt = document.createElement('option');
                 opt.value = region;
                 opt.innerText = region;
-                if (region === selectedRegion) opt.selected = true;
                 regSelect.appendChild(opt);
             });
         }
-        updateAdaptiveSuggestions(id);
     }
 
-    function updateAdaptiveSuggestions(id) {
-        const card = document.getElementById(`c-${id}`);
-        const category = card.querySelector('.c-category').value;
-        const system = card.querySelector('.c-p-system').value;
-        const commodityFields = card.querySelectorAll('.m-item');
-        const firstCommodity = commodityFields.length > 0 ? commodityFields[0].value : "";
-
-        const datalist = document.getElementById('dynamic-title-words');
-        datalist.innerHTML = '';
-        const suggestions = new Set();
-
-        // Specific phrase generation for Hauling/Priority
-        if (firstCommodity && system) suggestions.add(`${system} ${firstCommodity} ${category}`);
-        if (firstCommodity) suggestions.add(`${firstCommodity} ${category}`);
-        if (system) suggestions.add(`${system} ${category} Ops`);
-        
-        titleWordLibrary.forEach(word => suggestions.add(word));
-        suggestions.forEach(phrase => {
-            const opt = document.createElement('option');
-            opt.value = phrase;
-            datalist.appendChild(opt);
-        });
-    }
-
-    function handleTitlePrediction(input, id) {
-        const val = input.value;
-        const words = val.split(" ");
-        const lastWord = words[words.length - 1].toLowerCase();
-        const prefix = words.slice(0, -1).join(" ");
-        const datalist = document.getElementById('dynamic-title-words');
-
-        if (lastWord.length > 0) {
-            Array.from(titleWordLibrary)
-                .filter(w => w.toLowerCase().startsWith(lastWord))
-                .forEach(match => {
-                    const suggestion = (prefix ? prefix + " " : "") + match;
-                    const option = document.createElement('option');
-                    option.value = suggestion;
-                    datalist.appendChild(option);
-                });
-        }
-    }
-
-    function addManifestItem(contractId, isPickup, pData = null, dLoc = '') {
+    function addManifestItem(contractId) {
         const index = document.querySelectorAll(`#p-man-${contractId} .step-row`).length;
         const syncId = `sync-${contractId}-${index}`;
 
+        // Pickup Row: Commodity and SCU
         const phtml = `
             <div class="step-row" id="p-${syncId}">
-                <input type="text" class="m-item" list="data-commodities" placeholder="Commodity" value="${pData?.item || ''}" oninput="syncAndRefreshTitle('${syncId}', '${contractId}')">
-                <input type="number" class="m-scu" style="width:70px" placeholder="SCU" value="${pData?.scu || 0}" oninput="syncData('${syncId}')">
-                <input type="text" class="m-loc" style="width:100px" placeholder="Origin Loc" value="${pData?.loc || ''}">
+                <input type="text" class="m-item" placeholder="Commodity" oninput="syncData('${syncId}')">
+                <input type="number" class="m-scu" placeholder="SCU" style="width:70px" oninput="syncData('${syncId}')">
             </div>`;
         document.getElementById(`p-man-${contractId}`).insertAdjacentHTML('beforeend', phtml);
 
+        // Destination Row: Inherited Data + Final Delivery Slot
         const dhtml = `
             <div class="step-row" id="d-${syncId}">
-                <input type="text" class="m-item" id="sync-item-${syncId}" readonly style="opacity:0.6" value="${pData?.item || ''}">
-                <input type="number" class="m-scu" id="sync-scu-${syncId}" readonly style="width:70px; opacity:0.6" value="${pData?.scu || 0}">
-                <input type="text" class="m-loc" style="width:100px" placeholder="Dest Loc" value="${dLoc || ''}">
+                <input type="text" id="sync-item-${syncId}" readonly style="opacity:0.6; flex:1;" placeholder="Inherited Item">
+                <input type="number" id="sync-scu-${syncId}" readonly style="opacity:0.6; width:60px;" placeholder="SCU">
+                <input type="text" class="m-final-loc" style="flex:1.5; border: 1px solid var(--primary);" placeholder="Final Delivery Loc (Hangar/Outpost)">
             </div>`;
         document.getElementById(`d-man-${contractId}`).insertAdjacentHTML('beforeend', dhtml);
-    }
-
-    function syncAndRefreshTitle(syncId, contractId) {
-        syncData(syncId);
-        updateAdaptiveSuggestions(contractId);
     }
 
     function syncData(syncId) {
@@ -279,52 +176,32 @@
         document.getElementById(`sync-scu-${syncId}`).value = pScu;
     }
 
-    function toggleMinimize(id) { document.getElementById(`c-${id}`).classList.toggle('minimized'); }
-
-    function importJson(event) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            const data = JSON.parse(e.target.result);
-            if (data.contract_terms) {
-                data.contract_terms.forEach(word => titleWordLibrary.add(word));
-            } else {
-                globalContractData = data;
-                document.getElementById('db-count').innerText = `DATABASE: ${globalContractData.length} CONTRACTS`;
-            }
-        };
-        reader.readAsText(event.target.files[0]);
-    }
-
-    function removeElement(id) { document.getElementById(id).remove(); }
-
+    // Export includes the new final delivery locations
     function exportToJson() {
         const screenContracts = [];
         document.querySelectorAll('.contract-card').forEach(card => {
             const id = card.dataset.id;
             screenContracts.push({
-                category: card.querySelector('.c-category').value,
                 name: card.querySelector('.c-name').value,
-                payout: card.querySelector('.c-payout').value,
+                category: card.querySelector('.c-category').value,
                 pSystem: card.querySelector('.c-p-system').value,
                 pRegion: card.querySelector('.c-p-region').value,
                 dSystem: card.querySelector('.c-d-system').value,
                 dRegion: card.querySelector('.c-d-region').value,
-                pManifest: Array.from(card.querySelectorAll(`#p-man-${id} .step-row`)).map(row => ({
-                    item: row.querySelector('.m-item').value,
-                    scu: row.querySelector('.m-scu').value,
-                    loc: row.querySelector('.m-loc').value
-                })),
-                dManifest: Array.from(card.querySelectorAll(`#d-man-${id} .step-row`)).map(row => ({
-                    item: row.querySelector('.m-item').value,
-                    scu: row.querySelector('.m-scu').value,
-                    loc: row.querySelector('.m-loc').value
-                }))
+                manifest: Array.from(card.querySelectorAll(`#p-man-${id} .step-row`)).map((row, i) => {
+                    const dRow = document.querySelectorAll(`#d-man-${id} .step-row`)[i];
+                    return {
+                        item: row.querySelector('.m-item').value,
+                        scu: row.querySelector('.m-scu').value,
+                        finalLoc: dRow.querySelector('.m-final-loc').value
+                    };
+                })
             });
         });
         const blob = new Blob([JSON.stringify(screenContracts, null, 2)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `hauling_master_db.json`;
+        a.download = `hauling_ledger_export.json`;
         a.click();
     }
 </script>
