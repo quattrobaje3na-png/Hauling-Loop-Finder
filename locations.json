@@ -1,20 +1,28 @@
 {
   "Stanton": {
-    "Hurston": ["Lorville", "Everus Harbor", "HDMS-Stanhope", "HDMS-Thephan"],
-    "Crusader": ["Orison", "Seraphim Station", "Daymar - Shubin SCD-1", "Yela - Deakins"],
-    "ArcCorp": ["Area18", "Bajini Point", "Lyria - SAL-2", "Wala - ArcCorp 045"],
-    "microTech": ["New Babbage", "Port Tressler", "Calliope - Rayari", "Clio - Rayari"]
+    "ArcCorp": ["Area18", "Area04", "Area06", "Area17", "Baijini Point", "ARC-L1", "ARC-L2", "ARC-L3", "ARC-L4", "ARC-L5", "Argo Astronautics", "Astro Armada", "Central Business District"],
+    "Wala": ["Shady Glen Farms", "ArcCorp Mining Area 045", "ArcCorp Mining Area 048", "ArcCorp Mining Area 056", "ArcCorp Mining Area 061", "ArcCorp Processing Center 115", "ArcCorp Processing Center 123", "Lost and Found", "Good Times Temple", "Samson & Sons Salvage Center"],
+    "Lyria": ["Humboldt Mines", "Loveridge Mineral Reserve", "Shubin Mining Facility SAL-2", "Shubin Mining Facility SAL-5", "Shubin Processing Facility SPAL-3", "Shubin Processing Facility SPAL-7", "Shubin Processing Facility SPAL-9", "Shubin Processing Facility SPAL-12", "Shubin Processing Facility SPAL-16", "Shubin Processing Facility SPAL-21", "Amos", "Benson", "Buckhold", "Candlewood", "Chaffee", "Chuck", "Collins", "Curtain", "Deakins", "Devlin", "Dunlow", "Ehrlich", "Favel", "Feynman", "Garrity", "Gates", "Goodwin", "Gracie", "Hadley", "Hahn", "Hammond", "Hickes", "Hobart", "Ibis", "Kaczynski", "Kendal", "Kins", "Kudre Ore", "Security Depot"],
+    "Hurston": ["Lorville", "Everus Harbor", "HUR-L1", "HUR-L2", "HUR-L3", "HUR-L4", "HUR-L5", "HDMS-Edmond", "HDMS-Hadley", "HDMS-Oparei", "HDMS-Pinewood", "HDMS-Ryder", "HDMS-Stanhope", "HDMS-Thedus", "HDMS-Woodruff", "HDSF-Jaeger", "Acheron", "Acreage", "Barton Flats", "Barton Mine", "Bountiful Harvest Hydroponics", "Brio's Breaker Yard", "Bud's Growery", "Carr-McGreath", "Eager Flats", "HMC Hadley", "HMC Oparei", "HMC Pinewood", "HMC Stanhope", "HMC Thedus", "HMC Woodruff", "Hurston Dynamics"],
+    "Arial": ["HDMS-Bezdek", "HDMS-Lathan"],
+    "Aberdeen": ["HDMS-Norgaard", "HDMS-Anderson", "Klescher Rehabilitation Facility", "Barton Flats Aid Shelter"],
+    "Magda": ["HDMS-Hahn", "HDMS-Perlman"],
+    "Ita": ["HDMS-Woodruff", "HDMS-Ryder"],
+    "Crusader": ["Orison", "Seraphim Station", "CRU-L1", "CRU-L4", "CRU-L5", "Bishop", "Cloudrest Retreat", "Empyrean Park", "Prospect Point"],
+    "Cellin": ["Kareah", "Black", "Unnamed abandoned outpost", "Gallete Family Farms", "Terra Mills HydroFarm", "Myers Mining", "Hickes Research Outpost", "Security Post Criska", "Security Post Dipur", "Security Post Lespin", "Ashburn Channel Aid Shelter", "Flanagan's Ravine Aid Shelter", "Julep Ravine Aid Shelter", "Mogote Aid Shelter", "NT-999-XV", "Stash House", "Blue"],
+    "Daymar": ["Jump Town", "Brio's Breaker Yard", "Nuen Waste Management", "Whistlers Crypt", "Yadar Valley", "Dunlow Ridge Aid Shelter", "Eager Flats Aid Shelter", "Tamdon Plains Aid Shelter", "Wolf Point Aid Shelter", "Bountiful Harvest Hydroponics", "ArcCorp Mining Area 141", "Kudre Ore", "Shubin Mining Facility SCD-1", "Beryl", "Bentley"],
+    "Yela": ["GrimHEX", "Dagger", "Unnamed abandoned outpost", "ArcCorp Mining Area 157", "Aston Ridge Aid Shelter", "Benson Mining Outpost", "Connor's", "Deakins Research Outpost", "Rayari Inc.", "Kosso Basin Aid Shelter", "Nakamura Valley Aid Shelter", "Talarine Divide Aid Shelter"],
+    "microTech": ["New Babbage", "Port Tressler", "MIC-L1", "MIC-L4", "MIC-L5", "Avalon", "Frostbite", "Ghost Hollow"],
+    "Calliope": ["Astrid"],
+    "Deep Space": ["Delamar", "Comm Array 157", "Comm Array 327", "Comm Array 537", "Cry-Astro Station 042"]
   },
   "Pyro": {
-    "Pyro I": ["Stanton Gateway", "Bloom", "Checkmate Station (PYR2-L4)"],
-    "Pyro II (Monox)": ["Outlaw Outposts", "Mining Scars"],
-    "Pyro III (Bloom)": ["Orbituary", "Starlight Service Station (PYR3-L1)", "Patch City (PYR3-L3)", "Abandoned Mining Hubs"],
-    "Pyro IV": ["Miyazaki", "Kanda Station", "Warped Landscape Sites"],
-    "Pyro V": ["Gaslight (PYR5-L2)", "Rod's Fuel 'N Supplies (PYR5-L4)", "Rat's Nest (PYR5-L5)", "Hydrogen Harvesting Points"],
-    "Pyro VI (Terminus)": ["Ruin Station (XenoThreat)", "Endgame (PYR6-L3)", "Dudley & Daughters (PYR6-L4)", "Megumi Refueling (PYR6-L5)"],
+    "Pyro I": ["Gray Gardens Depot", "Rustville", "Stag's Rut", "Stanton Gateway"],
+    "Pyro II (Monox)": ["Arid Reach", "Jackson's Swap", "Last Ditch", "Ostler's Claim", "Slowburn Depot", "Sunset Mesa", "Yang's Place", "PYR2-L4 (Checkmate)"],
+    "Pyro III (Bloom)": ["Prospect Depot", "Orbituary", "Bueno Ravine", "Frigid Knot", "Narena's Rest", "Shepherd's Rest", "Carver's Ridge", "The Golden Riviera", "The Yard", "Windfall", "Shadowfall", "PYR3-L1 (Starlight)", "PYR3-L3 (Patch City)"],
+    "Pyro IV": ["Chawla's Beach", "Dinger's Depot", "Fallow Field", "Goner's Deal", "Sacren's Plot"],
+    "Pyro V": ["PYR5-L2 (Gaslight)", "PYR5-L4 (Rod's Fuel)", "PYR5-L5 (Rat's Nest)"],
+    "Pyro VI (Terminus)": ["Blackrock Exchange", "Bullock's Reach", "Canard View", "Kinder Plots", "Last Landings", "Rough Landing", "Scarper's Turn", "Stonetree", "Supply Gap", "Watcher's Depot", "Ruin Station", "PYR6-L3 (Endgame)", "PYR6-L4 (Dudley & Daughters)", "PYR6-L5 (Megumi Refueling)"],
     "Jump Points": ["Stanton Gateway", "Nyx Gateway"]
-  },
-  "Nyx": {
-    "Delamar": ["Levski", "Mining Area 157"]
   }
 }
