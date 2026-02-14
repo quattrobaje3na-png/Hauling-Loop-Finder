@@ -3,35 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CMDR Quattro Logistics Tracker</title>
+    <title>CMDR Quattro Logistics Ledger</title>
     <style>
         :root { --accent: #822; --bg: #0a0a0a; --panel: #1a1a1a; --text: #e0e0e0; --border: #333; }
         body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Tahoma, sans-serif; padding: 10px; }
-        .form-container { max-width: 1400px; margin: 0 auto; background: var(--panel); padding: 20px; border: 1px solid var(--border); border-radius: 4px; }
         
-        h2, h3 { color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin-top: 0; border-bottom: 1px solid var(--accent); padding-bottom: 5px; font-size: 1.1rem; }
+        /* Layout */
+        .ledger-container { max-width: 1600px; margin: 0 auto; }
+        .contract-block { background: var(--panel); padding: 20px; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 30px; position: relative; }
+        .contract-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent); margin-bottom: 15px; padding-bottom: 10px; }
         
         .main-layout { display: grid; grid-template-columns: 420px 1fr; gap: 20px; align-items: start; }
-        .delivery-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        .delivery-grid { display: grid; grid-template-columns: 1fr; gap: 15px; transition: 0.3s; }
         .delivery-grid.split { grid-template-columns: 1fr 1fr; }
 
-        .form-section { margin-bottom: 20px; }
+        /* Typography & Inputs */
+        h2, h3 { color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin: 0; font-size: 1.1rem; }
         .input-group { display: flex; flex-direction: column; margin-bottom: 10px; }
         label { font-size: 0.7rem; margin-bottom: 3px; color: #aaa; text-transform: uppercase; }
-        
         select, input { background: #222; border: 1px solid var(--border); color: white; padding: 8px; border-radius: 2px; font-size: 0.85rem; }
         select:focus, input:focus { border-color: var(--accent); outline: none; }
 
+        /* Commodities */
         .manifest-item { display: grid; grid-template-columns: 1fr 80px 30px; gap: 8px; margin-bottom: 8px; align-items: center; }
-        .delivery-zone { background: #111; padding: 15px; border-top: 3px solid var(--accent); }
-        
-        .action-btn { background: var(--accent); color: white; border: none; padding: 10px; cursor: pointer; font-weight: bold; text-transform: uppercase; width: 100%; font-size: 0.8rem; }
-        .secondary-btn { background: #333; color: white; border: 1px solid #444; padding: 8px; cursor: pointer; text-transform: uppercase; font-size: 0.7rem; }
-        
         .item-split-row { display: grid; grid-template-columns: 1fr 60px; gap: 10px; margin-bottom: 5px; background: #1a1a1a; padding: 5px; border-radius: 2px; font-size: 0.8rem; }
         
-        .remove-btn { background: transparent; color: #666; border: 1px solid #444; padding: 2px 6px; cursor: pointer; font-size: 0.7rem; }
-        .remove-btn:hover { color: white; border-color: var(--accent); }
+        /* Zones */
+        .delivery-zone { background: #111; padding: 15px; border-top: 3px solid var(--accent); }
+        
+        /* Buttons */
+        .action-btn { background: var(--accent); color: white; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; text-transform: uppercase; font-size: 0.8rem; }
+        .secondary-btn { background: #333; color: white; border: 1px solid #444; padding: 8px; cursor: pointer; text-transform: uppercase; font-size: 0.7rem; }
+        .remove-contract-btn { background: transparent; color: #666; border: 1px solid #444; padding: 5px 10px; cursor: pointer; font-size: 0.75rem; }
+        .remove-contract-btn:hover { color: white; border-color: var(--accent); }
+        
+        .global-actions { position: sticky; bottom: 20px; background: rgba(10,10,10,0.9); padding: 15px; border: 1px solid var(--accent); border-radius: 4px; display: flex; gap: 15px; z-index: 100; }
         
         .hidden { display: none; }
         #import-input { display: none; }
@@ -39,79 +45,22 @@
 </head>
 <body>
 
-<div class="form-container">
-    <div class="input-group" style="margin-bottom: 20px;">
-        <label>Manifest Title (100 Character Limit)</label>
-        <input type="text" id="manifest-title" maxlength="100" placeholder="e.g., Pyro II Split Run">
+<div class="ledger-container" id="ledger">
     </div>
 
-    <div class="main-layout">
-        <div class="form-section" style="background: #151515; padding: 15px; border-radius: 4px;">
-            <h3>Primary Pickup</h3>
-            <div class="input-group"><label>System</label><select id="p-system" onchange="updateRegions('p')"></select></div>
-            <div class="input-row-mini" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <div class="input-group"><label>Region</label><select id="p-region" onchange="updateLocations('p')"></select></div>
-                <div class="input-group"><label>Location</label><select id="p-location"></select></div>
-            </div>
-            
-            <label style="margin-top:15px; display:block;">Commodities</label>
-            <div id="manifest-list">
-                <div class="manifest-item">
-                    <input type="text" class="comm-name" placeholder="Item" oninput="syncToDrops()">
-                    <input type="number" class="comm-qty" placeholder="Qty" oninput="calculateTotalSCU()">
-                    <button type="button" class="remove-btn" onclick="this.parentElement.remove(); calculateTotalSCU(); syncToDrops();">X</button>
-                </div>
-            </div>
-            <button type="button" class="secondary-btn" onclick="addCommodity()">+ Add Item</button>
-            
-            <div class="input-group" style="margin-top: 15px;">
-                <label>Total Combined SCU</label>
-                <input type="number" id="total-scu" value="0" readonly style="color: var(--accent); font-weight: bold; border:none; background:transparent; font-size:1.2rem;">
-            </div>
-        </div>
-
-        <div class="form-section">
-            <h3>Delivery Destinations</h3>
-            <div id="delivery-grid" class="delivery-grid">
-                <div class="delivery-zone" id="zone-1">
-                    <label style="color:var(--accent); font-weight:bold;">DROP POINT A</label>
-                    <div class="input-row-mini" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin: 10px 0;">
-                        <select id="d1-system" onchange="updateRegions('d1')"></select>
-                        <select id="d1-region" onchange="updateLocations('d1')"></select>
-                        <select id="d1-location"></select>
-                    </div>
-                    <div id="d1-items"></div>
-                </div>
-
-                <div class="delivery-zone hidden" id="zone-2">
-                    <div style="display:flex; justify-content:space-between;">
-                        <label style="color:var(--accent); font-weight:bold;">DROP POINT B</label>
-                        <button class="remove-btn" onclick="toggleSplit()">Remove</button>
-                    </div>
-                    <div class="input-row-mini" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin: 10px 0;">
-                        <select id="d2-system" onchange="updateRegions('d2')"></select>
-                        <select id="d2-region" onchange="updateLocations('d2')"></select>
-                        <select id="d2-location"></select>
-                    </div>
-                    <div id="d2-items"></div>
-                </div>
-            </div>
-            <button type="button" class="action-btn" id="split-trigger" onclick="toggleSplit()" style="margin-top:10px;">+ Split Delivery (Multi-Drop Run)</button>
-        </div>
-    </div>
-
-    <div style="display: flex; gap: 10px; margin-top:20px; border-top: 1px solid #333; padding-top:20px;">
-        <input type="file" id="import-input" accept=".json" onchange="importJSON(event)">
-        <button class="secondary-btn" style="flex:1" onclick="document.getElementById('import-input').click()">Import JSON Manifest</button>
-        <button class="action-btn" style="flex:1" onclick="exportJSON()">Export JSON Manifest</button>
-    </div>
+<div class="global-actions">
+    <button class="action-btn" onclick="addNewContract()">+ Add New Contract</button>
+    <div style="flex-grow: 1;"></div>
+    <input type="file" id="import-input" accept=".json" onchange="importLedger(event)">
+    <button class="secondary-btn" onclick="document.getElementById('import-input').click()">Import Ledger JSON</button>
+    <button class="action-btn" onclick="exportLedger()">Export Full Ledger</button>
 </div>
 
 <script>
 const starCitizenData = {
     "Stanton": {
-        "ArcCorp": ["Area18", "Area04", "Area06", "Area17", "Baijini Point", "ARC-L1", "ARC-L2", "ARC-L3", "ARC-L4", "ARC-L5"],
-        "Wala": ["Shady Glen Farms", "ArcCorp Mining Area 045", "ArcCorp Mining Area 048", "ArcCorp Mining Area 056", "ArcCorp Mining Area 048", "ArcCorp Processing Center 115", "ArcCorp Processing Center 123"],
+        "ArcCorp": ["Area18", "Area04", "Area06", "Area17", "Baijini Point"],
+        "Wala": ["Shady Glen Farms", "ArcCorp Mining Area 045", "ArcCorp Mining Area 048", "ArcCorp Mining Area 056", "ArcCorp Mining Area 061", "ArcCorp Processing Center 115", "ArcCorp Processing Center 123"],
         "Lyria": ["Humboldt Mines", "Loveridge Mineral Reserve", "Shubin Mining Facility SAL-2", "Security Depot Lyria-1"],
         "Hurston": ["Lorville", "Everus Harbor", "HUR-L1", "HDMS-Edmond", "HDMS-Oparei", "Reclamation & Disposal Orinth"],
         "Crusader": ["Orison", "Seraphim Station", "CRU-L1", "CRU-L4", "CRU-L5"],
@@ -122,7 +71,7 @@ const starCitizenData = {
         "Calliope": ["Shubin Mining Facility SMCa-6", "Shubin Processing Facility SPMC-1", "Rayari Anvik Research Outpost"]
     },
     "Pyro": {
-        "Pyro I": ["Gray Gardens Depot", "Rustville", "Stag's Rut", "Stanton Gateway", "PYR1-L2 (PYAM-FARSTAT-1-2)", "PYR1-L3 (Akiro Cluster)"],
+        "Pyro I": ["Gray Gardens Depot", "Rustville", "Stag's Rut", "Stanton Gateway"],
         "Pyro II (Monox)": ["Arid Reach", "Jackson's Swap", "Last Ditch", "Ostler's Claim", "Slowburn Depot", "Sunset Mesa", "Yang's Place", "PYR2-L4 (Checkmate Station)"],
         "Pyro III (Bloom)": ["Orbituary (Rough & Ready)", "Prospect Depot", "Bueno Ravine", "Shadowfall (XenoThreat)", "PYR3-L1 (Starlight)", "PYR3-L3 (Patch City)"],
         "Pyro IV": ["Chawla's Beach", "Dinger's Depot", "Fallow Field", "Goner's Deal", "Sacren's Plot"],
@@ -132,128 +81,204 @@ const starCitizenData = {
     "Nyx": { "Delamar": ["Levski", "Mining Area 157"] }
 };
 
-let splitActive = false;
+let contractCount = 0;
 
-function init() {
+function addNewContract(data = null) {
+    contractCount++;
+    const id = contractCount;
+    const ledger = document.getElementById('ledger');
+    
+    const block = document.createElement('div');
+    block.className = 'contract-block';
+    block.id = `contract-${id}`;
+    block.innerHTML = `
+        <div class="contract-header">
+            <input type="text" id="title-${id}" maxlength="100" placeholder="Contract Title (100 char)" style="width: 400px; font-weight: bold; border: none; background: transparent; color: var(--accent); font-size: 1.1rem;">
+            <button class="remove-contract-btn" onclick="removeContract(${id})">DELETE CONTRACT</button>
+        </div>
+        <div class="main-layout">
+            <div class="form-section" style="background: #151515; padding: 15px; border-radius: 4px;">
+                <h3>Pickup</h3>
+                <div class="input-group"><label>System</label><select id="p-sys-${id}" onchange="updateLocs(${id}, 'p')"></select></div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="input-group"><label>Region</label><select id="p-reg-${id}" onchange="updateLocs(${id}, 'p')"></select></div>
+                    <div class="input-group"><label>Zone</label><select id="p-loc-${id}"></select></div>
+                </div>
+                <label style="margin-top:15px; display:block;">Commodities</label>
+                <div id="comm-list-${id}"></div>
+                <button type="button" class="secondary-btn" onclick="addComm(${id})">+ Add Item</button>
+                <div class="input-group" style="margin-top: 15px;">
+                    <label>Total SCU</label>
+                    <input type="number" id="total-scu-${id}" value="0" readonly style="color: var(--accent); font-weight: bold; border:none; background:transparent; font-size:1.2rem;">
+                </div>
+            </div>
+            <div class="form-section">
+                <h3>Deliveries</h3>
+                <div id="del-grid-${id}" class="delivery-grid">
+                    <div class="delivery-zone" id="zone-1-${id}">
+                        <label style="color:var(--accent); font-weight:bold;">DROP A</label>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin: 10px 0;">
+                            <select id="d1-sys-${id}" onchange="updateLocs(${id}, 'd1')"></select>
+                            <select id="d1-reg-${id}" onchange="updateLocs(${id}, 'd1')"></select>
+                            <select id="d1-loc-${id}"></select>
+                        </div>
+                        <div id="d1-items-${id}"></div>
+                    </div>
+                    <div class="delivery-zone hidden" id="zone-2-${id}">
+                        <div style="display:flex; justify-content:space-between;">
+                            <label style="color:var(--accent); font-weight:bold;">DROP B</label>
+                            <button class="remove-btn" onclick="toggleSplit(${id})">Remove</button>
+                        </div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin: 10px 0;">
+                            <select id="d2-sys-${id}" onchange="updateLocs(${id}, 'd2')"></select>
+                            <select id="d2-reg-${id}" onchange="updateLocs(${id}, 'd2')"></select>
+                            <select id="d2-loc-${id}"></select>
+                        </div>
+                        <div id="d2-items-${id}"></div>
+                    </div>
+                </div>
+                <button type="button" class="action-btn" id="split-btn-${id}" onclick="toggleSplit(${id})" style="margin-top:10px; width:100%;">+ Split Delivery (A/B Run)</button>
+            </div>
+        </div>
+    `;
+    ledger.appendChild(block);
+    initSelectors(id);
+    if (!data) addComm(id); // Start with one item
+}
+
+function initSelectors(id) {
     ['p', 'd1', 'd2'].forEach(pre => {
-        const sysSel = document.getElementById(`${pre}-system`);
-        Object.keys(starCitizenData).forEach(s => sysSel.add(new Option(s, s)));
-        updateRegions(pre);
+        const sys = document.getElementById(`${pre}-sys-${id}`);
+        Object.keys(starCitizenData).forEach(s => sys.add(new Option(s, s)));
+        updateLocs(id, pre);
     });
-    syncToDrops();
 }
 
-function updateRegions(pre) {
-    const sys = document.getElementById(`${pre}-system`).value;
-    const regSel = document.getElementById(`${pre}-region`);
-    regSel.innerHTML = '';
-    Object.keys(starCitizenData[sys]).forEach(r => regSel.add(new Option(r, r)));
-    updateLocations(pre);
+function updateLocs(id, pre) {
+    const sys = document.getElementById(`${pre}-sys-${id}`).value;
+    const reg = document.getElementById(`${pre}-reg-${id}`);
+    const loc = document.getElementById(`${pre}-loc-${id}`);
+    const currentReg = reg.value;
+    
+    reg.innerHTML = '';
+    Object.keys(starCitizenData[sys]).forEach(r => reg.add(new Option(r, r)));
+    if (currentReg && starCitizenData[sys][currentReg]) reg.value = currentReg;
+
+    loc.innerHTML = '';
+    starCitizenData[sys][reg.value].forEach(l => loc.add(new Option(l, l)));
 }
 
-function updateLocations(pre) {
-    const sys = document.getElementById(`${pre}-system`).value;
-    const reg = document.getElementById(`${pre}-region`).value;
-    const locSel = document.getElementById(`${pre}-location`);
-    locSel.innerHTML = '';
-    starCitizenData[sys][reg].forEach(l => locSel.add(new Option(l, l)));
+function addComm(id, name = "", qty = "") {
+    const list = document.getElementById(`comm-list-${id}`);
+    const item = document.createElement('div');
+    item.className = 'manifest-item';
+    item.innerHTML = `
+        <input type="text" class="c-name" value="${name}" placeholder="Item" oninput="sync(${id})">
+        <input type="number" class="c-qty" value="${qty}" placeholder="Qty" oninput="calcTotal(${id})">
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove(); calcTotal(${id});">X</button>
+    `;
+    list.appendChild(item);
+    sync(id);
 }
 
-function addCommodity() {
-    const div = document.createElement('div');
-    div.className = 'manifest-item';
-    div.innerHTML = `<input type="text" class="comm-name" placeholder="Item" oninput="syncToDrops()">
-                     <input type="number" class="comm-qty" placeholder="Qty" oninput="calculateTotalSCU()">
-                     <button type="button" class="remove-btn" onclick="this.parentElement.remove(); calculateTotalSCU(); syncToDrops();">X</button>`;
-    document.getElementById('manifest-list').appendChild(div);
-}
-
-function calculateTotalSCU() {
+function calcTotal(id) {
     let t = 0;
-    document.querySelectorAll('.comm-qty').forEach(i => t += parseFloat(i.value) || 0);
-    document.getElementById('total-scu').value = t;
-    syncToDrops();
+    document.querySelectorAll(`#contract-${id} .c-qty`).forEach(i => t += parseFloat(i.value) || 0);
+    document.getElementById(`total-scu-${id}`).value = t;
+    sync(id);
 }
 
-function syncToDrops() {
-    const items = Array.from(document.querySelectorAll('.manifest-item')).map(i => ({
-        n: i.querySelector('.comm-name').value || "Item",
-        q: parseFloat(i.querySelector('.comm-qty').value) || 0
+function sync(id) {
+    const split = !document.getElementById(`zone-2-${id}`).classList.contains('hidden');
+    const items = Array.from(document.querySelectorAll(`#contract-${id} .manifest-item`)).map(i => ({
+        n: i.querySelector('.c-name').value || "Item",
+        q: parseFloat(i.querySelector('.c-qty').value) || 0
     }));
 
     ['d1', 'd2'].forEach(pre => {
-        const c = document.getElementById(`${pre}-items`);
+        const c = document.getElementById(`${pre}-items-${id}`);
         c.innerHTML = '';
         items.forEach(item => {
-            const val = splitActive ? (item.q / 2) : item.q;
-            c.innerHTML += `<div class="item-split-row"><span>${item.n}</span><input type="number" value="${val}" style="width:60px; background:transparent; border:none; color:var(--accent); text-align:right;"></div>`;
+            const val = split ? (item.q / 2) : item.q;
+            c.innerHTML += `<div class="item-split-row"><span>${item.n}</span><span style="color:var(--accent); font-weight:bold;">${val}</span></div>`;
         });
     });
 }
 
-function toggleSplit() {
-    splitActive = !splitActive;
-    document.getElementById('zone-2').classList.toggle('hidden');
-    document.getElementById('delivery-grid').classList.toggle('split');
-    document.getElementById('split-trigger').classList.toggle('hidden');
-    syncToDrops();
+function toggleSplit(id) {
+    document.getElementById(`zone-2-${id}`).classList.toggle('hidden');
+    document.getElementById(`del-grid-${id}`).classList.toggle('split');
+    document.getElementById(`split-btn-${id}`).classList.toggle('hidden');
+    sync(id);
 }
 
-function exportJSON() {
-    const manifest = {
-        title: document.getElementById('manifest-title').value.substring(0, 100),
-        splitActive: splitActive,
-        pickup: { sys: document.getElementById('p-system').value, reg: document.getElementById('p-region').value, loc: document.getElementById('p-location').value },
-        commodities: Array.from(document.querySelectorAll('.manifest-item')).map(i => ({
-            item: i.querySelector('.comm-name').value,
-            total: i.querySelector('.comm-qty').value
-        })),
-        dropA: { sys: document.getElementById('d1-system').value, reg: document.getElementById('d1-region').value, loc: document.getElementById('d1-location').value },
-        dropB: splitActive ? { sys: document.getElementById('d2-system').value, reg: document.getElementById('d2-region').value, loc: document.getElementById('d2-location').value } : null
-    };
-    const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: "application/json" });
+function removeContract(id) {
+    document.getElementById(`contract-${id}`).remove();
+}
+
+function exportLedger() {
+    const contracts = Array.from(document.querySelectorAll('.contract-block')).map(block => {
+        const id = block.id.split('-')[1];
+        const split = !document.getElementById(`zone-2-${id}`).classList.contains('hidden');
+        return {
+            title: document.getElementById(`title-${id}`).value,
+            splitActive: split,
+            pickup: { sys: document.getElementById(`p-sys-${id}`).value, reg: document.getElementById(`p-reg-${id}`).value, loc: document.getElementById(`p-loc-${id}`).value },
+            commodities: Array.from(block.querySelectorAll('.manifest-item')).map(i => ({ item: i.querySelector('.c-name').value, total: i.querySelector('.c-qty').value })),
+            dropA: { sys: document.getElementById(`d1-sys-${id}`).value, reg: document.getElementById(`d1-reg-${id}`).value, loc: document.getElementById(`d1-loc-${id}`).value },
+            dropB: split ? { sys: document.getElementById(`d2-sys-${id}`).value, reg: document.getElementById(`d2-reg-${id}`).value, loc: document.getElementById(`d2-loc-${id}`).value } : null
+        };
+    });
+    const blob = new Blob([JSON.stringify(contracts, null, 2)], { type: "application/json" });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `${manifest.title || 'manifest'}.json`;
+    a.download = `hauling_ledger_${new Date().toISOString().slice(0,10)}.json`;
     a.click();
 }
 
-function importJSON(event) {
+function importLedger(event) {
     const reader = new FileReader();
     reader.onload = (e) => {
         const data = JSON.parse(e.target.result);
-        document.getElementById('manifest-title').value = data.title;
-        if (data.splitActive !== splitActive) toggleSplit();
-        
-        loadField('p', data.pickup);
-        
-        const list = document.getElementById('manifest-list');
-        list.innerHTML = '';
-        data.commodities.forEach(c => {
-            const div = document.createElement('div');
-            div.className = 'manifest-item';
-            div.innerHTML = `<input type="text" class="comm-name" value="${c.item}" oninput="syncToDrops()">
-                             <input type="number" class="comm-qty" value="${c.total}" oninput="calculateTotalSCU()">
-                             <button type="button" class="remove-btn" onclick="this.parentElement.remove(); calculateTotalSCU(); syncToDrops();">X</button>`;
-            list.appendChild(div);
+        document.getElementById('ledger').innerHTML = '';
+        contractCount = 0;
+        data.forEach(c => {
+            addNewContract(true);
+            const id = contractCount;
+            document.getElementById(`title-${id}`).value = c.title;
+            if (c.splitActive) toggleSplit(id);
+            
+            // Set Pickup
+            document.getElementById(`p-sys-${id}`).value = c.pickup.sys;
+            updateLocs(id, 'p');
+            document.getElementById(`p-reg-${id}`).value = c.pickup.reg;
+            updateLocs(id, 'p');
+            document.getElementById(`p-loc-${id}`).value = c.pickup.loc;
+
+            // Set Items
+            c.commodities.forEach(item => addComm(id, item.item, item.total));
+            
+            // Set Drop A
+            document.getElementById(`d1-sys-${id}`).value = c.dropA.sys;
+            updateLocs(id, 'd1');
+            document.getElementById(`d1-reg-${id}`).value = c.dropA.reg;
+            updateLocs(id, 'd1');
+            document.getElementById(`d1-loc-${id}`).value = c.dropA.loc;
+
+            if (c.splitActive && c.dropB) {
+                document.getElementById(`d2-sys-${id}`).value = c.dropB.sys;
+                updateLocs(id, 'd2');
+                document.getElementById(`d2-reg-${id}`).value = c.dropB.reg;
+                updateLocs(id, 'd2');
+                document.getElementById(`d2-loc-${id}`).value = c.dropB.loc;
+            }
+            calcTotal(id);
         });
-        
-        loadField('d1', data.dropA);
-        if (data.splitActive) loadField('d2', data.dropB);
-        calculateTotalSCU();
     };
     reader.readAsText(event.target.files[0]);
 }
 
-function loadField(pre, data) {
-    document.getElementById(`${pre}-system`).value = data.sys;
-    updateRegions(pre);
-    document.getElementById(`${pre}-region`).value = data.reg;
-    updateLocations(pre);
-    document.getElementById(`${pre}-location`).value = data.loc;
-}
-
-window.onload = init;
+window.onload = () => addNewContract();
 </script>
 </body>
 </html>
