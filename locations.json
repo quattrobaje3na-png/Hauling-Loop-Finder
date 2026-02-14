@@ -1,21 +1,16 @@
 {
-  "Stanton": [
-    "ArcCorp",
-    "Crusader",
-    "Hurston",
-    "microTech"
-  ],
-  "Pyro": [
-    "Pyro I",
-    "Pyro II",
-    "Pyro III",
-    "Pyro IV",
-    "Pyro V",
-    "Pyro VI",
-    "Bloom",
-    "Checkmate"
-  ],
-  "Nyx": [
-    "Levski"
-  ]
+  "Stanton": {
+    "Hurston": ["Lorville", "Everus Harbor", "HDMS-Stanhope", "HDMS-Thephan"],
+    "Crusader": ["Orison", "Seraphim Station", "Daymar - Shubin SCD-1", "Yela - Deakins"],
+    "ArcCorp": ["Area18", "Bajini Point", "Lyria - SAL-2", "Wala - ArcCorp 045"],
+    "microTech": ["New Babbage", "Port Tressler", "Calliope - Rayari", "Clio - Rayari"]
+  },
+  "Pyro": {
+    "Pyro I": ["Checkmate", "Bloom"],
+    "Pyro II": ["Monolith", "Roughneck"],
+    "Pyro III": ["Starlight"]
+  },
+  "Nyx": {
+    "Delamar": ["Levski", "Mining Area 157"]
+  }
 }
