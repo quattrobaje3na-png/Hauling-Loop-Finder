@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCS Hauling: Cross-System Ledger</title>
+    <title>SCS Hauling: Dual-Manifest Ledger</title>
     <style>
         :root {
             --primary: #ff4d4d;
@@ -12,6 +12,8 @@
             --text: #e0e0e0;
             --border: #333;
             --accent: #2a2a2a;
+            --pickup-dim: #2d4a2d;
+            --delivery-dim: #4a2d2d;
         }
 
         body {
@@ -22,7 +24,7 @@
             padding: 20px;
         }
 
-        .container { max-width: 1000px; margin: 0 auto; }
+        .container { max-width: 1100px; margin: 0 auto; }
 
         header {
             border-bottom: 2px solid var(--primary);
@@ -48,7 +50,7 @@
             color: var(--primary);
             font-weight: bold;
             text-transform: uppercase;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             border-bottom: 1px solid var(--border);
             display: block;
         }
@@ -67,30 +69,28 @@
             font-size: 0.9rem;
         }
 
-        select:focus, input:focus { outline: 1px solid var(--primary); }
-
-        .steps-container {
-            margin-top: 20px;
+        .manifest-area {
+            background: rgba(255,255,255,0.03);
             padding: 15px;
-            background: rgba(0,0,0,0.2);
             border-radius: 6px;
+            margin-top: 10px;
         }
 
         .step-row {
             background: #222;
-            padding: 15px;
-            margin-bottom: 10px;
+            padding: 10px;
+            margin-bottom: 8px;
             border-radius: 4px;
             display: flex;
             align-items: flex-end;
-            gap: 15px;
-            border-left: 4px solid var(--primary);
+            gap: 10px;
+            border-left: 3px solid var(--primary);
         }
 
         .btn {
             cursor: pointer;
             border: none;
-            padding: 12px 24px;
+            padding: 10px 18px;
             border-radius: 4px;
             font-weight: bold;
             text-transform: uppercase;
@@ -98,27 +98,26 @@
         }
 
         .btn-add { background: var(--primary); color: white; margin-top: 10px; }
-        .btn-step { background: #3d3d3d; color: white; font-size: 0.7rem; margin-top: 10px; }
-        .btn-delete { background: #aa0000; color: white; padding: 8px 12px; font-size: 0.8rem; }
+        .btn-step { background: #3d3d3d; color: white; font-size: 0.65rem; margin-top: 10px; width: 100%; }
+        .btn-delete { background: #aa0000; color: white; padding: 5px 10px; font-size: 0.8rem; }
 
-        .btn:hover { filter: brightness(1.2); transform: translateY(-1px); }
+        .btn:hover { filter: brightness(1.2); }
     </style>
 </head>
 <body>
 
 <div class="container">
     <header>
-        <h1>STAR CITIZEN: CROSS-SYSTEM LEDGER</h1>
-        <div id="status">STATUS: STANDBY</div>
+        <h1>STAR CITIZEN: DUAL-MANIFEST LOGISTICS</h1>
+        <div id="status">STATUS: CALIBRATED</div>
     </header>
 
     <div id="contract-list"></div>
 
-    <button class="btn btn-add" onclick="addContract()">+ NEW CROSS-SYSTEM CONTRACT</button>
+    <button class="btn btn-add" onclick="addContract()">+ NEW CROSS-SYSTEM OPERATION</button>
 </div>
 
 <script>
-    // Updated Data Structure: Nyx now points to Levski
     const DATA = {
         systems: ["Stanton", "Pyro", "Nyx"],
         regions: {
@@ -133,78 +132,87 @@
         const id = Date.now();
         const html = `
             <div class="contract-card" id="c-${id}">
-                <button class="btn btn-delete" style="position:absolute; right:15px; top:15px;" onclick="removeElement('c-${id}')">DELETE</button>
+                <button class="btn btn-delete" style="position:absolute; right:15px; top:15px;" onclick="removeElement('c-${id}')">CANCEL OPS</button>
                 
                 <div class="row">
                     <div class="input-group">
                         <label>Contract Title</label>
-                        <input type="text" placeholder="e.g. Covalex Cross-System Haul">
+                        <input type="text" placeholder="e.g. Levski to Lorville Heavy Haul">
                     </div>
                     <div class="input-group" style="flex: 0.5;">
                         <label>Total Payout (aUEC)</label>
-                        <input type="text" placeholder="150,000">
+                        <input type="text" placeholder="250,000">
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="input-group">
-                        <span class="section-label">Origin (Pickup)</span>
-                        <label>System</label>
-                        <select onchange="updateRegions(this, 'pickup-region-${id}')">
-                            <option value="">Select System</option>
-                            ${DATA.systems.map(s => `<option value="${s}">${s}</option>`).join('')}
-                        </select>
-                        <label style="margin-top:10px;">Region</label>
-                        <select id="pickup-region-${id}"><option value="">Select System First</option></select>
+                        <span class="section-label" style="color: #4dff88;">Origin (Pickup Manifest)</span>
+                        <div class="row">
+                            <div class="input-group">
+                                <label>System</label>
+                                <select onchange="updateRegions(this, 'pickup-region-${id}')">
+                                    <option value="">Select System</option>
+                                    ${DATA.systems.map(s => `<option value="${s}">${s}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Region</label>
+                                <select id="pickup-region-${id}"><option value="">Select System First</option></select>
+                            </div>
+                        </div>
+                        <div class="manifest-area" id="pickup-manifest-${id}"></div>
+                        <button class="btn btn-step" onclick="addManifestItem('pickup-manifest-${id}')">+ ADD PICKUP ITEM</button>
                     </div>
 
                     <div class="input-group">
-                        <span class="section-label">Destination (Delivery)</span>
-                        <label>System</label>
-                        <select onchange="updateRegions(this, 'delivery-region-${id}')">
-                            <option value="">Select System</option>
-                            ${DATA.systems.map(s => `<option value="${s}">${s}</option>`).join('')}
-                        </select>
-                        <label style="margin-top:10px;">Region</label>
-                        <select id="delivery-region-${id}"><option value="">Select System First</option></select>
+                        <span class="section-label">Destination (Delivery Manifest)</span>
+                        <div class="row">
+                            <div class="input-group">
+                                <label>System</label>
+                                <select onchange="updateRegions(this, 'delivery-region-${id}')">
+                                    <option value="">Select System</option>
+                                    ${DATA.systems.map(s => `<option value="${s}">${s}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Region</label>
+                                <select id="delivery-region-${id}"><option value="">Select System First</option></select>
+                            </div>
+                        </div>
+                        <div class="manifest-area" id="delivery-manifest-${id}"></div>
+                        <button class="btn btn-step" onclick="addManifestItem('delivery-manifest-${id}')">+ ADD DELIVERY ITEM</button>
                     </div>
                 </div>
-
-                <span class="section-label">Logistics Manifest</span>
-                <div class="steps-container" id="steps-${id}"></div>
-                <button class="btn btn-step" onclick="addStep(${id})">+ ADD MANIFEST STEP</button>
             </div>
         `;
         document.getElementById('contract-list').insertAdjacentHTML('beforeend', html);
-        addStep(id); 
+        addManifestItem(`pickup-manifest-${id}`);
+        addManifestItem(`delivery-manifest-${id}`);
     }
 
-    function addStep(contractId) {
-        const stepId = Date.now();
+    function addManifestItem(containerId) {
+        const itemId = Date.now() + Math.random();
         const html = `
-            <div class="step-row" id="s-${stepId}">
-                <div class="input-group" style="min-width: 100px; flex: 0.4;">
-                    <label>Action</label>
-                    <select><option>Pickup</option><option>Deliver</option></select>
-                </div>
-                <div class="input-group">
-                    <label>Material</label>
+            <div class="step-row" id="i-${itemId}">
+                <div class="input-group" style="min-width: 120px;">
+                    <label>Cargo</label>
                     <select>
                         ${DATA.materials.map(m => `<option value="${m}">${m}</option>`).join('')}
                     </select>
                 </div>
-                <div class="input-group" style="min-width: 80px; flex: 0.3;">
-                    <label>Amount (SCU)</label>
+                <div class="input-group" style="min-width: 60px;">
+                    <label>SCU</label>
                     <input type="number" placeholder="0">
                 </div>
                 <div class="input-group">
-                    <label>Specific Location</label>
-                    <input type="text" placeholder="e.g. Levski Hangar 01">
+                    <label>Station/Hangar</label>
+                    <input type="text" placeholder="Loc">
                 </div>
-                <button class="btn btn-delete" onclick="removeElement('s-${stepId}')">🗑️</button>
+                <button class="btn btn-delete" onclick="removeElement('i-${itemId}')">×</button>
             </div>
         `;
-        document.getElementById(`steps-${contractId}`).insertAdjacentHTML('beforeend', html);
+        document.getElementById(containerId).insertAdjacentHTML('beforeend', html);
     }
 
     function updateRegions(select, targetId) {
@@ -219,7 +227,6 @@
         document.getElementById(id).remove();
     }
 
-    // Initialize the first contract
     addContract();
 </script>
 
