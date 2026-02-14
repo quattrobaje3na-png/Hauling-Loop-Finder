@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCS Hauling: JSON Fleet Manager</title>
+    <title>SCS Hauling: Strategic Operations Ledger</title>
     <style>
         :root {
             --primary: #ff4d4d;
@@ -53,6 +53,14 @@
         label { font-size: 0.75rem; color: #888; margin-bottom: 5px; }
         select, input { background: var(--accent); border: 1px solid var(--border); color: white; padding: 10px; border-radius: 4px; }
 
+        .category-header {
+            background: rgba(255, 77, 77, 0.1);
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            border: 1px solid var(--primary);
+        }
+
         .manifest-area { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; margin-top: 10px; }
         .step-row { background: #222; padding: 8px; margin-bottom: 5px; border-radius: 4px; display: flex; gap: 10px; border-left: 3px solid var(--primary); }
 
@@ -69,12 +77,12 @@
 
 <div class="container">
     <header>
-        <h1>STAR CITIZEN: JSON FLEET LEDGER</h1>
+        <h1>STAR CITIZEN: STRATEGIC OPS LEDGER</h1>
         <div id="status">DB READY</div>
     </header>
 
     <div class="toolbar">
-        <input type="text" id="auto-search" placeholder="Type Contract Name to Auto-Fill..." list="contract-suggestions">
+        <input type="text" id="auto-search" placeholder="Search Contract in Database..." list="contract-suggestions">
         <datalist id="contract-suggestions"></datalist>
         <button class="btn btn-add" onclick="autoFillSelected()">Load & Fill</button>
         <button class="btn btn-save" onclick="exportToJson()">Export JSON</button>
@@ -88,6 +96,7 @@
 
 <script>
     const DATA = {
+        categories: ["Priority", "Hauling", "Hauling-Interstellar"],
         systems: ["Stanton", "Pyro", "Nyx"],
         regions: {
             "Stanton": ["Crusader", "Hurston", "ArcCorp", "microTech"],
@@ -104,10 +113,21 @@
         const html = `
             <div class="contract-card" id="c-${id}" data-id="${id}">
                 <button class="btn btn-delete" style="position:absolute; right:15px; top:15px;" onclick="removeElement('c-${id}')">×</button>
+                
+                <div class="category-header">
+                    <div class="input-group">
+                        <label>Operation Category</label>
+                        <select class="c-category" style="width: 100%;">
+                            ${DATA.categories.map(cat => `<option value="${cat}" ${initialData?.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+
                 <div class="row">
                     <div class="input-group"><label>Contract Name</label><input type="text" class="c-name" value="${initialData?.name || ''}"></div>
                     <div class="input-group" style="flex:0.5"><label>Payout (aUEC)</label><input type="text" class="c-payout" value="${initialData?.payout || ''}"></div>
                 </div>
+                
                 <div class="row">
                     <div class="input-group">
                         <span class="section-label">Origin</span>
@@ -119,7 +139,7 @@
                             <option value="${initialData?.pRegion || ''}">${initialData?.pRegion || 'Select System'}</option>
                         </select>
                         <div class="manifest-area" id="p-man-${id}"></div>
-                        <button class="btn" style="font-size:0.6rem" onclick="addManifestItem('p-man-${id}')">+ Pickup</button>
+                        <button class="btn" style="font-size:0.6rem" onclick="addManifestItem('p-man-${id}')">+ Pickup Item</button>
                     </div>
                     <div class="input-group">
                         <span class="section-label">Destination</span>
@@ -131,13 +151,12 @@
                             <option value="${initialData?.dRegion || ''}">${initialData?.dRegion || 'Select System'}</option>
                         </select>
                         <div class="manifest-area" id="d-man-${id}"></div>
-                        <button class="btn" style="font-size:0.6rem" onclick="addManifestItem('d-man-${id}')">+ Delivery</button>
+                        <button class="btn" style="font-size:0.6rem" onclick="addManifestItem('d-man-${id}')">+ Delivery Item</button>
                     </div>
                 </div>
             </div>`;
         document.getElementById('contract-list').insertAdjacentHTML('beforeend', html);
         
-        // Handle loading nested manifest items if they exist
         if (initialData?.pManifest) initialData.pManifest.forEach(m => addManifestItem(`p-man-${id}`, m));
         if (initialData?.dManifest) initialData.dManifest.forEach(m => addManifestItem(`d-man-${id}`, m));
     }
@@ -156,6 +175,7 @@
         const contracts = [];
         document.querySelectorAll('.contract-card').forEach(card => {
             const contract = {
+                category: card.querySelector('.c-category').value,
                 name: card.querySelector('.c-name').value,
                 payout: card.querySelector('.c-payout').value,
                 pSystem: card.querySelector('.c-p-system').value,
@@ -202,7 +222,7 @@
         const name = document.getElementById('auto-search').value;
         const match = contractDatabase.find(c => c.name === name);
         if (match) addContract(match);
-        else alert("Contract not found in database.");
+        else alert("Contract not found.");
     }
 
     function updateRegions(select, targetId) {
