@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCS Hauling: Predictive Ops Ledger</title>
+    <title>SCS Hauling: Modular Predictive Ledger</title>
     <style>
         :root {
             --primary: #ff4d4d;
@@ -44,7 +44,6 @@
             padding: 25px;
             margin-bottom: 20px;
             position: relative;
-            transition: all 0.3s ease;
         }
 
         .contract-card.minimized { padding: 10px 20px; background: var(--minimized); border-left: 5px solid var(--primary); }
@@ -68,55 +67,23 @@
         .btn-add { background: var(--primary); color: white; }
         .btn-toggle { background: #555; color: white; padding: 5px 10px; font-size: 0.7rem; }
         .btn-delete { background: #aa0000; color: white; padding: 5px 10px; }
-        
-        /* Auto-suggest styling */
-        datalist { background: var(--card); color: white; }
     </style>
 </head>
 <body>
 
-<datalist id="list-categories">
-    <option value="Priority">
-    <option value="Hauling">
-    <option value="Hauling-Interstellar">
-</datalist>
-
-<datalist id="list-systems">
-    <option value="Stanton">
-    <option value="Pyro">
-    <option value="Nyx">
-</datalist>
-
-<datalist id="list-materials">
-    <option value="Aphorite">
-    <option value="Audio-Visual Equipment">
-    <option value="Beryl">
-    <option value="Carbon">
-    <option value="Copper (Ore)">
-    <option value="Diamond">
-    <option value="Distilled Spirits">
-    <option value="Fresh Food">
-    <option value="Gold">
-    <option value="Iron (Ore)">
-    <option value="Laranite">
-    <option value="Medical Supplies">
-    <option value="Party Favors">
-    <option value="Processed Food">
-    <option value="Quartz (Raw)">
-    <option value="Silicon">
-    <option value="Stims">
-    <option value="Souvenirs">
-    <option value="Waste">
-</datalist>
+<datalist id="dynamic-title-words"></datalist>
+<datalist id="data-systems"></datalist>
+<datalist id="data-regions"></datalist>
+<datalist id="data-commodities"></datalist>
 
 <div class="container">
     <header>
-        <h1>STAR CITIZEN: PREDICTIVE OPS LEDGER</h1>
+        <h1>STAR CITIZEN: MODULAR OPS LEDGER</h1>
         <div id="db-count">DATABASE: 0 CONTRACTS</div>
     </header>
 
     <div class="toolbar">
-        <input type="text" id="auto-search" placeholder="Quick-Load Contract by Name..." list="contract-suggestions">
+        <input type="text" id="auto-search" placeholder="Quick-Load Saved Contract..." list="contract-suggestions">
         <datalist id="contract-suggestions"></datalist>
         <button class="btn btn-add" onclick="autoFillSelected()">Load</button>
         <button class="btn btn-save" onclick="exportToJson()">Export DB</button>
@@ -130,6 +97,7 @@
 
 <script>
     let globalContractData = [];
+    let titleWordLibrary = new Set(["Bulk", "Haul", "Small", "Scale", "Medium", "Covalex", "Independent", "Red", "Wind", "Distribution"]);
 
     function addContract(initialData = null) {
         const id = Date.now() + Math.floor(Math.random() * 1000);
@@ -142,8 +110,12 @@
                 
                 <div class="row">
                     <div class="input-group" style="flex:2">
-                        <label>Contract Name</label>
-                        <input type="text" class="c-name" value="${initialData?.name || ''}">
+                        <label>Contract Title (Word Prediction)</label>
+                        <input type="text" class="c-name" 
+                               list="dynamic-title-words" 
+                               maxlength="100"
+                               oninput="handleTitlePrediction(this)"
+                               value="${initialData?.name || ''}">
                     </div>
                 </div>
 
@@ -151,7 +123,7 @@
                     <div class="row" style="background: rgba(255,255,255,0.05); padding:10px; border-radius:4px;">
                         <div class="input-group">
                             <label>Category</label>
-                            <input type="text" class="c-category" list="list-categories" value="${initialData?.category || 'Hauling'}">
+                            <input type="text" class="c-category" value="${initialData?.category || 'Hauling'}">
                         </div>
                         <div class="input-group">
                             <label>Payout (aUEC)</label>
@@ -163,8 +135,8 @@
                         <div class="input-group">
                             <span class="section-label">Origin (Pickup)</span>
                             <div class="row" style="gap:10px; margin-bottom:5px;">
-                                <input type="text" class="c-p-system" list="list-systems" placeholder="System" value="${initialData?.pSystem || ''}">
-                                <input type="text" class="c-p-region" placeholder="Region (e.g. Levski)" value="${initialData?.pRegion || ''}">
+                                <input type="text" class="c-p-system" list="data-systems" placeholder="System" value="${initialData?.pSystem || ''}">
+                                <input type="text" class="c-p-region" list="data-regions" placeholder="Region" value="${initialData?.pRegion || ''}">
                             </div>
                             <div class="manifest-area" id="p-man-${id}"></div>
                             <button class="btn" style="font-size:0.6rem" onclick="addManifestItem('${id}', true)">+ Add Pickup</button>
@@ -172,8 +144,8 @@
                         <div class="input-group">
                             <span class="section-label">Destination (Delivery)</span>
                             <div class="row" style="gap:10px; margin-bottom:5px;">
-                                <input type="text" class="c-d-system" list="list-systems" placeholder="System" value="${initialData?.dSystem || ''}">
-                                <input type="text" class="c-d-region" placeholder="Region (e.g. Lorville)" value="${initialData?.dRegion || ''}">
+                                <input type="text" class="c-d-system" list="data-systems" placeholder="System" value="${initialData?.dSystem || ''}">
+                                <input type="text" class="c-d-region" list="data-regions" placeholder="Region" value="${initialData?.dRegion || ''}">
                             </div>
                             <div class="manifest-area" id="d-man-${id}"></div>
                         </div>
@@ -190,13 +162,37 @@
         }
     }
 
+    // NEW LOGIC: Preditive text based on individual words
+    function handleTitlePrediction(input) {
+        const val = input.value;
+        const words = val.split(/\s+/);
+        const currentWord = words[words.length - 1].toLowerCase();
+        const datalist = document.getElementById('dynamic-title-words');
+        
+        datalist.innerHTML = ''; // Clear previous suggestions
+
+        if (currentWord.length > 0) {
+            const matches = Array.from(titleWordLibrary).filter(w => 
+                w.toLowerCase().startsWith(currentWord)
+            );
+
+            matches.forEach(match => {
+                // Reconstruct the string with the suggested word
+                const suggestion = words.slice(0, -1).join(" ") + (words.length > 1 ? " " : "") + match;
+                const option = document.createElement('option');
+                option.value = suggestion;
+                datalist.appendChild(option);
+            });
+        }
+    }
+
     function addManifestItem(contractId, isPickup, pData = null, dLoc = '') {
         const index = document.querySelectorAll(`#p-man-${contractId} .step-row`).length;
         const syncId = `sync-${contractId}-${index}`;
 
         const phtml = `
             <div class="step-row" id="p-${syncId}">
-                <input type="text" class="m-item" list="list-materials" placeholder="Commodity" value="${pData?.item || ''}" oninput="syncData('${syncId}')">
+                <input type="text" class="m-item" list="data-commodities" placeholder="Commodity" value="${pData?.item || ''}" oninput="syncData('${syncId}')">
                 <input type="number" class="m-scu" style="width:70px" placeholder="SCU" value="${pData?.scu || 0}" oninput="syncData('${syncId}')">
                 <input type="text" class="m-loc" style="width:100px" placeholder="Origin Loc" value="${pData?.loc || ''}">
             </div>`;
@@ -204,8 +200,8 @@
 
         const dhtml = `
             <div class="step-row" id="d-${syncId}">
-                <input type="text" class="m-item" id="sync-item-${syncId}" placeholder="Commodity" value="${pData?.item || ''}" readonly style="opacity:0.6">
-                <input type="number" class="m-scu" id="sync-scu-${syncId}" style="width:70px" placeholder="SCU" value="${pData?.scu || 0}" readonly style="opacity:0.6">
+                <input type="text" class="m-item" id="sync-item-${syncId}" readonly style="opacity:0.6" value="${pData?.item || ''}">
+                <input type="number" class="m-scu" id="sync-scu-${syncId}" readonly style="width:70px; opacity:0.6" value="${pData?.scu || 0}">
                 <input type="text" class="m-loc" style="width:100px" placeholder="Dest Loc" value="${dLoc || ''}">
             </div>`;
         document.getElementById(`d-man-${contractId}`).insertAdjacentHTML('beforeend', dhtml);
@@ -258,10 +254,43 @@
         const reader = new FileReader();
         reader.onload = e => {
             globalContractData = JSON.parse(e.target.result);
+            processJsonForPredictiveText();
             updateSuggestions();
             document.getElementById('db-count').innerText = `DATABASE: ${globalContractData.length} CONTRACTS`;
         };
         reader.readAsText(event.target.files[0]);
+    }
+
+    // NEW FUNCTION: Extract unique words and terms from JSON for lists
+    function processJsonForPredictiveText() {
+        const commoditySet = new Set();
+        const systemSet = new Set();
+        const regionSet = new Set();
+
+        globalContractData.forEach(c => {
+            // Extract Title Words
+            c.name.split(/\s+/).forEach(word => {
+                if(word.length > 2) titleWordLibrary.add(word.replace(/[^a-zA-Z]/g, ""));
+            });
+            
+            // Extract Systems/Regions
+            if(c.pSystem) systemSet.add(c.pSystem);
+            if(c.dSystem) systemSet.add(c.dSystem);
+            if(c.pRegion) regionSet.add(c.pRegion);
+            if(c.dRegion) regionSet.add(c.dRegion);
+
+            // Extract Commodities
+            c.pManifest.forEach(m => commoditySet.add(m.item));
+        });
+
+        fillDatalist('data-systems', systemSet);
+        fillDatalist('data-regions', regionSet);
+        fillDatalist('data-commodities', commoditySet);
+    }
+
+    function fillDatalist(id, set) {
+        const list = document.getElementById(id);
+        list.innerHTML = Array.from(set).sort().map(val => `<option value="${val}">`).join('');
     }
 
     function updateSuggestions() {
