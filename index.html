@@ -95,16 +95,16 @@
 
 <script>
     let globalContractData = [];
-    let titleWordLibrary = new Set(["Bulk", "Haul", "Cargo", "Urgent", "Red", "Wind", "Independent", "Alliance", "Distribution"]);
+    let titleWordLibrary = new Set(["Bulk", "Haul", "Cargo", "Independent", "Urgent", "Red", "Wind", "Alliance", "Distribution"]);
     
-    // Mapping Systems to Regions
     const systemMap = {
         "Stanton": ["ArcCorp", "Crusader", "Hurston", "microTech", "Levski"],
         "Pyro": ["Pyro I", "Pyro II", "Pyro III", "Pyro IV", "Pyro V", "Pyro VI", "Bloom", "Checkmate"],
         "Nyx": ["Delamar"]
     };
 
-    const categories = ["Hauling", "Legal Cargo", "Salvage", "Medical", "Event"];
+    // Updated Category list
+    const categories = ["Hauling", "Hauling - Interstellar", "Priority"];
 
     function addContract(initialData = null) {
         const id = Date.now() + Math.floor(Math.random() * 1000);
@@ -118,7 +118,7 @@
                 
                 <div class="row">
                     <div class="input-group" style="flex:2">
-                        <label>Contract Title (Predictive)</label>
+                        <label>Contract Title (Adaptive Phrase / Word Prediction)</label>
                         <input type="text" class="c-name" 
                                id="title-input-${id}"
                                list="dynamic-title-words" 
@@ -177,7 +177,6 @@
         
         document.getElementById('contract-list').insertAdjacentHTML('beforeend', html);
         
-        // Populate regions if initial data exists
         if (initialData?.pSystem) updateRegionList(id, 'p', initialData.pRegion);
         if (initialData?.dSystem) updateRegionList(id, 'd', initialData.dRegion);
 
@@ -188,18 +187,10 @@
         }
     }
 
-    /**
-     * Updates the Region dropdown based on the selected System
-     * @param {string} id - Card ID
-     * @param {string} type - 'p' for Pickup, 'd' for Destination
-     * @param {string} selectedRegion - Optional pre-selected value
-     */
     function updateRegionList(id, type, selectedRegion = "") {
         const sysVal = document.getElementById(`${type}-sys-${id}`).value;
         const regSelect = document.getElementById(`${type}-reg-${id}`);
-        
         regSelect.innerHTML = '<option value="">-- Region --</option>';
-        
         if (systemMap[sysVal]) {
             systemMap[sysVal].forEach(region => {
                 const opt = document.createElement('option');
@@ -223,6 +214,7 @@
         datalist.innerHTML = '';
         const suggestions = new Set();
 
+        // Specific phrase generation for Hauling/Priority
         if (firstCommodity && system) suggestions.add(`${system} ${firstCommodity} ${category}`);
         if (firstCommodity) suggestions.add(`${firstCommodity} ${category}`);
         if (system) suggestions.add(`${system} ${category} Ops`);
