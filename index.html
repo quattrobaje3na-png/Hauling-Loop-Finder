@@ -42,17 +42,13 @@
 <div class="container">
     <header>
         <h1>STAR CITIZEN: MODULAR OPS LEDGER</h1>
-        <div>STATUS: <span id="loc-status" style="color: var(--primary)">Missing Locations.json</span></div>
+        <div>STATUS: <span id="loc-status" style="color: var(--primary)">Initializing...</span></div>
     </header>
 
     <div class="toolbar">
-        <button class="btn" style="background:#444; color:white;" onclick="document.getElementById('import-loc').click()">1. Load locations.json</button>
-        <input type="file" id="import-loc" style="display:none" onchange="importLocations(event)">
-        
-        <button class="btn" style="background:#1565c0; color:white;" onclick="document.getElementById('import-db').click()">2. Import Ledger/Titles</button>
+        <button class="btn" style="background:#2e7d32; color:white;" onclick="exportToJson()">Export Ledger</button>
+        <button class="btn" style="background:#1565c0; color:white;" onclick="document.getElementById('import-db').click()">Import Ledger</button>
         <input type="file" id="import-db" style="display:none" onchange="importDatabase(event)">
-
-        <button class="btn" style="background:#2e7d32; color:white;" onclick="exportToJson()">Export DB</button>
     </div>
 
     <div id="contract-list"></div>
@@ -62,61 +58,42 @@
 <script>
     let globalContractData = [];
     let titleWordLibrary = new Set();
-    let systemMap = null; // Set to null initially
+    let systemMap = null;
 
     const categories = ["Hauling", "Hauling - Interstellar", "Priority"];
 
-    function importLocations(event) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            try {
-                systemMap = JSON.parse(e.target.result);
-                document.getElementById('loc-status').innerText = "Locations Loaded";
+    // AUTO-LOAD JSONs FROM ROOT
+    window.onload = async () => {
+        try {
+            const locRes = await fetch('locations.json');
+            if (locRes.ok) {
+                systemMap = await locRes.json();
+                document.getElementById('loc-status').innerText = "Locations Active";
                 document.getElementById('loc-status').style.color = "#2e7d32";
-                
-                // CRITICAL FIX: Repopulate all existing System dropdowns
-                const systemOptions = `<option value="">-- System --</option>` + 
-                    Object.keys(systemMap).map(s => `<option value="${s}">${s}</option>`).join('');
-                
-                document.querySelectorAll('.c-p-system, .c-d-system').forEach(select => {
-                    const currentVal = select.value;
-                    select.innerHTML = systemOptions;
-                    select.value = currentVal; // Preserve selection if any
-                });
-            } catch (err) {
-                alert("Invalid JSON format in locations.json");
             }
-        };
-        reader.readAsText(event.target.files[0]);
-    }
 
-    function importDatabase(event) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            const data = JSON.parse(e.target.result);
-            if (data.contract_terms) {
-                data.contract_terms.forEach(word => titleWordLibrary.add(word));
-                alert("Titles Added");
-            } else {
-                globalContractData = data;
-                alert("Database Loaded");
+            const titleRes = await fetch('title.json');
+            if (titleRes.ok) {
+                const titleData = await titleRes.json();
+                if (titleData.contract_terms) {
+                    titleData.contract_terms.forEach(word => titleWordLibrary.add(word));
+                }
             }
-        };
-        reader.readAsText(event.target.files[0]);
-    }
+        } catch (err) {
+            console.error("Auto-fetch failed. Ensure files are in the root and served via a local server.", err);
+            document.getElementById('loc-status').innerText = "Root Access Denied (Use Local Server)";
+        }
+    };
 
     function addContract(initialData = null) {
         const id = Date.now() + Math.floor(Math.random() * 1000);
-        
-        // Generate System options ONLY if systemMap exists
         const systemOptions = systemMap ? 
             `<option value="">-- System --</option>` + Object.keys(systemMap).map(s => `<option value="${s}">${s}</option>`).join('') :
-            `<option value="">Upload locations.json first</option>`;
+            `<option value="">No Data</option>`;
 
         const html = `
             <div class="contract-card" id="c-${id}" data-id="${id}">
                 <button class="btn btn-delete" onclick="document.getElementById('c-${id}').remove()">×</button>
-                
                 <div class="row">
                     <div class="input-group" style="flex:2">
                         <label>Contract Title</label>
@@ -129,26 +106,20 @@
                         </select>
                     </div>
                 </div>
-
                 <div class="row">
                     <div class="input-group">
                         <span class="section-label">Origin (Pickup)</span>
                         <div class="row">
-                            <select class="c-p-system" id="p-sys-${id}" onchange="updateRegionDropdown('${id}', 'p')">
-                                ${systemOptions}
-                            </select>
+                            <select class="c-p-system" id="p-sys-${id}" onchange="updateRegionDropdown('${id}', 'p')">${systemOptions}</select>
                             <select class="c-p-region" id="p-reg-${id}"><option value="">-- Region --</option></select>
                         </div>
                         <div class="manifest-area" id="p-man-${id}"></div>
                         <button class="btn" style="font-size:0.7rem" onclick="addManifestItem('${id}')">+ Add Pickup Slot</button>
                     </div>
-
                     <div class="input-group">
                         <span class="section-label">Destination (Delivery)</span>
                         <div class="row">
-                            <select class="c-d-system" id="d-sys-${id}" onchange="updateRegionDropdown('${id}', 'd')">
-                                ${systemOptions}
-                            </select>
+                            <select class="c-d-system" id="d-sys-${id}" onchange="updateRegionDropdown('${id}', 'd')">${systemOptions}</select>
                             <select class="c-d-region" id="d-reg-${id}"><option value="">-- Region --</option></select>
                         </div>
                         <div class="manifest-area" id="d-man-${id}"></div>
@@ -162,7 +133,6 @@
         const sysVal = document.getElementById(`${type}-sys-${id}`).value;
         const regSelect = document.getElementById(`${type}-reg-${id}`);
         regSelect.innerHTML = '<option value="">-- Region --</option>';
-        
         if (systemMap && systemMap[sysVal]) {
             systemMap[sysVal].forEach(region => {
                 const opt = document.createElement('option');
@@ -176,20 +146,9 @@
     function addManifestItem(contractId) {
         const index = document.querySelectorAll(`#p-man-${contractId} .step-row`).length;
         const syncId = `sync-${contractId}-${index}`;
-
-        const phtml = `
-            <div class="step-row" id="p-${syncId}">
-                <input type="text" class="m-item" placeholder="Commodity" oninput="syncData('${syncId}')">
-                <input type="number" class="m-scu" placeholder="SCU" style="width:70px" oninput="syncData('${syncId}')">
-            </div>`;
+        const phtml = `<div class="step-row" id="p-${syncId}"><input type="text" class="m-item" placeholder="Commodity" oninput="syncData('${syncId}')"><input type="number" class="m-scu" placeholder="SCU" style="width:70px" oninput="syncData('${syncId}')"></div>`;
         document.getElementById(`p-man-${contractId}`).insertAdjacentHTML('beforeend', phtml);
-
-        const dhtml = `
-            <div class="step-row" id="d-${syncId}">
-                <input type="text" id="sync-item-${syncId}" readonly style="opacity:0.6; flex:1;">
-                <input type="number" id="sync-scu-${syncId}" readonly style="opacity:0.6; width:60px;">
-                <input type="text" class="m-final-loc" style="flex:1.5; border: 1px solid var(--primary);" placeholder="Hangar/Pad Slot">
-            </div>`;
+        const dhtml = `<div class="step-row" id="d-${syncId}"><input type="text" id="sync-item-${syncId}" readonly style="opacity:0.6; flex:1;"><input type="number" id="sync-scu-${syncId}" readonly style="opacity:0.6; width:60px;"><input type="text" class="m-final-loc" style="flex:1.5; border: 1px solid var(--primary);" placeholder="Hangar/Pad Slot"></div>`;
         document.getElementById(`d-man-${contractId}`).insertAdjacentHTML('beforeend', dhtml);
     }
 
@@ -207,10 +166,8 @@
         const lastWord = words[words.length - 1].toLowerCase();
         const prefix = words.slice(0, -1).join(" ");
         datalist.innerHTML = ''; 
-
         if (lastWord.length > 0) {
-            Array.from(titleWordLibrary).filter(w => w.toLowerCase().startsWith(lastWord))
-            .forEach(match => {
+            Array.from(titleWordLibrary).filter(w => w.toLowerCase().startsWith(lastWord)).forEach(match => {
                 const suggestion = (prefix ? prefix + " " : "") + match;
                 const option = document.createElement('option');
                 option.value = suggestion;
@@ -232,11 +189,7 @@
                 dRegion: card.querySelector('.c-d-region').value,
                 manifest: Array.from(card.querySelectorAll(`#p-man-${id} .step-row`)).map((row, i) => {
                     const dRow = document.querySelectorAll(`#d-man-${id} .step-row`)[i];
-                    return {
-                        item: row.querySelector('.m-item').value,
-                        scu: row.querySelector('.m-scu').value,
-                        finalLoc: dRow.querySelector('.m-final-loc').value
-                    };
+                    return { item: row.querySelector('.m-item').value, scu: row.querySelector('.m-scu').value, finalLoc: dRow.querySelector('.m-final-loc').value };
                 })
             });
         });
@@ -246,6 +199,7 @@
         a.download = `hauling_ledger.json`;
         a.click();
     }
-</script>
-</body>
-</html>
+
+    function importDatabase(event) {
+        const reader = new FileReader();
+        reader.onload = e =>
