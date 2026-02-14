@@ -55,8 +55,8 @@
         .input-group { flex: 1; min-width: 220px; display: flex; flex-direction: column; }
         
         label { font-size: 0.75rem; color: #888; margin-bottom: 5px; }
-        input { background: var(--accent); border: 1px solid var(--border); color: white; padding: 10px; border-radius: 4px; }
-        input:focus { outline: 1px solid var(--primary); background: #000; }
+        input, select { background: var(--accent); border: 1px solid var(--border); color: white; padding: 10px; border-radius: 4px; }
+        input:focus, select:focus { outline: 1px solid var(--primary); background: #000; }
 
         .manifest-area { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; margin-top: 10px; }
         .step-row { background: #222; padding: 8px; margin-bottom: 5px; border-radius: 4px; display: flex; gap: 10px; border-left: 3px solid var(--primary); }
@@ -72,8 +72,6 @@
 <body>
 
 <datalist id="dynamic-title-words"></datalist>
-<datalist id="data-systems"></datalist>
-<datalist id="data-regions"></datalist>
 <datalist id="data-commodities"></datalist>
 
 <div class="container">
@@ -97,8 +95,12 @@
 
 <script>
     let globalContractData = [];
-    // Library seeded with common terms; will be expanded by JSON import
-    let titleWordLibrary = new Set(["Bulk", "Haul", "Cargo", "Covalex", "Red", "Wind", "Small", "Medium", "Large", "Alliance", "Distribution", "Independent"]);
+    let titleWordLibrary = new Set(["Bulk", "Haul", "Cargo", "Independent", "Urgent", "Red", "Wind", "Alliance", "Distribution"]);
+    
+    // Core selection lists
+    let systems = ["Stanton", "Pyro", "Nyx"];
+    let regions = ["Crusader", "Hurston", "ArcCorp", "microTech", "Levski", "Pyro I"];
+    let categories = ["Hauling", "Legal Cargo", "Salvage", "Medical", "Event"];
 
     function addContract(initialData = null) {
         const id = Date.now() + Math.floor(Math.random() * 1000);
@@ -112,21 +114,24 @@
                 
                 <div class="row">
                     <div class="input-group" style="flex:2">
-                        <label>Contract Title (Word-by-Word Prediction)</label>
+                        <label>Contract Title (Adaptive Phrase / Word Prediction)</label>
                         <input type="text" class="c-name" 
+                               id="title-input-${id}"
                                list="dynamic-title-words" 
                                maxlength="100"
-                               oninput="handleTitlePrediction(this)"
-                               placeholder="e.g. Bulk Haul..."
+                               onfocus="updateAdaptiveSuggestions('${id}')"
+                               oninput="handleTitlePrediction(this, '${id}')"
                                value="${initialData?.name || ''}">
                     </div>
                 </div>
 
                 <div class="card-content">
-                    <div class="row" style="background: rgba(255,255,255,0.05); padding:10px; border-radius:4px;">
+                    <div class="row">
                         <div class="input-group">
                             <label>Category</label>
-                            <input type="text" class="c-category" value="${initialData?.category || 'Hauling'}">
+                            <select class="c-category" id="cat-${id}" onchange="updateAdaptiveSuggestions('${id}')">
+                                ${categories.map(c => `<option value="${c}" ${initialData?.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+                            </select>
                         </div>
                         <div class="input-group">
                             <label>Payout (aUEC)</label>
@@ -137,18 +142,30 @@
                     <div class="row">
                         <div class="input-group">
                             <span class="section-label">Origin (Pickup)</span>
-                            <div class="row" style="gap:10px; margin-bottom:5px;">
-                                <input type="text" class="c-p-system" list="data-systems" placeholder="System" value="${initialData?.pSystem || ''}">
-                                <input type="text" class="c-p-region" list="data-regions" placeholder="Region" value="${initialData?.pRegion || ''}">
+                            <div class="row">
+                                <select class="c-p-system" id="p-sys-${id}" onchange="updateAdaptiveSuggestions('${id}')">
+                                    <option value="">-- System --</option>
+                                    ${systems.map(s => `<option value="${s}" ${initialData?.pSystem === s ? 'selected' : ''}>${s}</option>`).join('')}
+                                </select>
+                                <select class="c-p-region" id="p-reg-${id}">
+                                    <option value="">-- Region --</option>
+                                    ${regions.map(r => `<option value="${r}" ${initialData?.pRegion === r ? 'selected' : ''}>${r}</option>`).join('')}
+                                </select>
                             </div>
                             <div class="manifest-area" id="p-man-${id}"></div>
-                            <button class="btn" style="font-size:0.6rem" onclick="addManifestItem('${id}', true)">+ Add Pickup</button>
+                            <button class="btn" onclick="addManifestItem('${id}', true)">+ Add Pickup</button>
                         </div>
                         <div class="input-group">
                             <span class="section-label">Destination (Delivery)</span>
-                            <div class="row" style="gap:10px; margin-bottom:5px;">
-                                <input type="text" class="c-d-system" list="data-systems" placeholder="System" value="${initialData?.dSystem || ''}">
-                                <input type="text" class="c-d-region" list="data-regions" placeholder="Region" value="${initialData?.dRegion || ''}">
+                            <div class="row">
+                                <select class="c-d-system" id="d-sys-${id}">
+                                    <option value="">-- System --</option>
+                                    ${systems.map(s => `<option value="${s}" ${initialData?.dSystem === s ? 'selected' : ''}>${s}</option>`).join('')}
+                                </select>
+                                <select class="c-d-region" id="d-reg-${id}">
+                                    <option value="">-- Region --</option>
+                                    ${regions.map(r => `<option value="${r}" ${initialData?.dRegion === r ? 'selected' : ''}>${r}</option>`).join('')}
+                                </select>
                             </div>
                             <div class="manifest-area" id="d-man-${id}"></div>
                         </div>
@@ -165,30 +182,46 @@
         }
     }
 
-    // FIXED PREDICTION LOGIC
-    function handleTitlePrediction(input) {
-        const val = input.value;
+    // Adaptive Logic: Updates Title datalist based on dropdown selections
+    function updateAdaptiveSuggestions(id) {
+        const card = document.getElementById(`c-${id}`);
+        const category = card.querySelector('.c-category').value;
+        const system = card.querySelector('.c-p-system').value;
+        const commodityFields = card.querySelectorAll('.m-item');
+        const firstCommodity = commodityFields.length > 0 ? commodityFields[0].value : "";
+
         const datalist = document.getElementById('dynamic-title-words');
+        datalist.innerHTML = '';
+        const suggestions = new Set();
+
+        if (firstCommodity && system) suggestions.add(`${system} ${firstCommodity} ${category}`);
+        if (firstCommodity) suggestions.add(`${firstCommodity} ${category}`);
+        if (system) suggestions.add(`${system} ${category} Ops`);
         
-        // Split by spaces, but keep track of trailing space
+        titleWordLibrary.forEach(word => suggestions.add(word));
+        suggestions.forEach(phrase => {
+            const opt = document.createElement('option');
+            opt.value = phrase;
+            datalist.appendChild(opt);
+        });
+    }
+
+    function handleTitlePrediction(input, id) {
+        const val = input.value;
         const words = val.split(" ");
         const lastWord = words[words.length - 1].toLowerCase();
         const prefix = words.slice(0, -1).join(" ");
+        const datalist = document.getElementById('dynamic-title-words');
 
-        datalist.innerHTML = ''; 
-
-        if (lastWord.length > 0 || val.endsWith(" ")) {
-            // Find words that match the current typing
-            const matches = Array.from(titleWordLibrary).filter(w => 
-                w.toLowerCase().startsWith(lastWord)
-            );
-
-            matches.forEach(match => {
-                const suggestion = (prefix ? prefix + " " : "") + match;
-                const option = document.createElement('option');
-                option.value = suggestion;
-                datalist.appendChild(option);
-            });
+        if (lastWord.length > 0) {
+            Array.from(titleWordLibrary)
+                .filter(w => w.toLowerCase().startsWith(lastWord))
+                .forEach(match => {
+                    const suggestion = (prefix ? prefix + " " : "") + match;
+                    const option = document.createElement('option');
+                    option.value = suggestion;
+                    datalist.appendChild(option);
+                });
         }
     }
 
@@ -198,7 +231,7 @@
 
         const phtml = `
             <div class="step-row" id="p-${syncId}">
-                <input type="text" class="m-item" list="data-commodities" placeholder="Commodity" value="${pData?.item || ''}" oninput="syncData('${syncId}')">
+                <input type="text" class="m-item" list="data-commodities" placeholder="Commodity" value="${pData?.item || ''}" oninput="syncAndRefreshTitle('${syncId}', '${contractId}')">
                 <input type="number" class="m-scu" style="width:70px" placeholder="SCU" value="${pData?.scu || 0}" oninput="syncData('${syncId}')">
                 <input type="text" class="m-loc" style="width:100px" placeholder="Origin Loc" value="${pData?.loc || ''}">
             </div>`;
@@ -211,6 +244,11 @@
                 <input type="text" class="m-loc" style="width:100px" placeholder="Dest Loc" value="${dLoc || ''}">
             </div>`;
         document.getElementById(`d-man-${contractId}`).insertAdjacentHTML('beforeend', dhtml);
+    }
+
+    function syncAndRefreshTitle(syncId, contractId) {
+        syncData(syncId);
+        updateAdaptiveSuggestions(contractId);
     }
 
     function syncData(syncId) {
@@ -230,49 +268,10 @@
                 data.contract_terms.forEach(word => titleWordLibrary.add(word));
             } else {
                 globalContractData = data;
-                processJsonForPredictiveText();
                 document.getElementById('db-count').innerText = `DATABASE: ${globalContractData.length} CONTRACTS`;
             }
-            updateSuggestions();
         };
         reader.readAsText(event.target.files[0]);
-    }
-
-    function processJsonForPredictiveText() {
-        const commoditySet = new Set();
-        const systemSet = new Set();
-        const regionSet = new Set();
-
-        globalContractData.forEach(c => {
-            // Seed library with words from previous contract names
-            c.name.split(/\s+/).forEach(word => {
-                if(word.length > 2) titleWordLibrary.add(word.replace(/[^a-zA-Z]/g, ""));
-            });
-            if(c.pSystem) systemSet.add(c.pSystem);
-            if(c.dSystem) systemSet.add(c.dSystem);
-            if(c.pRegion) regionSet.add(c.pRegion);
-            if(c.dRegion) regionSet.add(c.dRegion);
-            c.pManifest.forEach(m => commoditySet.add(m.item));
-        });
-
-        fillDatalist('data-systems', systemSet);
-        fillDatalist('data-regions', regionSet);
-        fillDatalist('data-commodities', commoditySet);
-    }
-
-    function fillDatalist(id, set) {
-        const list = document.getElementById(id);
-        list.innerHTML = Array.from(set).sort().map(val => `<option value="${val}">`).join('');
-    }
-
-    function updateSuggestions() {
-        document.getElementById('contract-suggestions').innerHTML = globalContractData.map(c => `<option value="${c.name}">`).join('');
-    }
-
-    function autoFillSelected() {
-        const name = document.getElementById('auto-search').value;
-        const match = globalContractData.find(c => c.name === name);
-        if (match) { addContract(match); document.getElementById('auto-search').value = ""; }
     }
 
     function removeElement(id) { document.getElementById(id).remove(); }
