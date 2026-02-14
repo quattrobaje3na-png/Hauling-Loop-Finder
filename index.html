@@ -42,7 +42,7 @@
 <div class="container">
     <header>
         <h1>STAR CITIZEN: MODULAR OPS LEDGER</h1>
-        <div>STATUS: <span id="loc-status" style="color: var(--primary)">Awaiting JSON...</span></div>
+        <div>STATUS: <span id="loc-status" style="color: var(--primary)">Missing Locations.json</span></div>
     </header>
 
     <div class="toolbar">
@@ -61,50 +61,45 @@
 
 <script>
     let globalContractData = [];
-    let titleWordLibrary = new Set(); // Empty by default
-    let systemMap = {}; // Empty by default
+    let titleWordLibrary = new Set();
+    let systemMap = null; // Set to null initially
 
     const categories = ["Hauling", "Hauling - Interstellar", "Priority"];
 
-    // Function to load the Location JSON
     function importLocations(event) {
         const reader = new FileReader();
         reader.onload = e => {
             try {
                 systemMap = JSON.parse(e.target.result);
-                document.getElementById('loc-status').innerText = "Locations Active";
+                document.getElementById('loc-status').innerText = "Locations Loaded";
                 document.getElementById('loc-status').style.color = "#2e7d32";
                 
-                // Refresh any open cards to show new system options
-                document.querySelectorAll('.contract-card').forEach(card => {
-                    const id = card.getAttribute('data-id');
-                    const pSys = document.getElementById(`p-sys-${id}`);
-                    const dSys = document.getElementById(`d-sys-${id}`);
-                    
-                    const options = `<option value="">-- System --</option>` + 
-                        Object.keys(systemMap).map(s => `<option value="${s}">${s}</option>`).join('');
-                    
-                    pSys.innerHTML = options;
-                    dSys.innerHTML = options;
+                // CRITICAL FIX: Repopulate all existing System dropdowns
+                const systemOptions = `<option value="">-- System --</option>` + 
+                    Object.keys(systemMap).map(s => `<option value="${s}">${s}</option>`).join('');
+                
+                document.querySelectorAll('.c-p-system, .c-d-system').forEach(select => {
+                    const currentVal = select.value;
+                    select.innerHTML = systemOptions;
+                    select.value = currentVal; // Preserve selection if any
                 });
             } catch (err) {
-                alert("Error parsing locations.json. Check your syntax.");
+                alert("Invalid JSON format in locations.json");
             }
         };
         reader.readAsText(event.target.files[0]);
     }
 
-    // Function to load Titles or Master Database
     function importDatabase(event) {
         const reader = new FileReader();
         reader.onload = e => {
             const data = JSON.parse(e.target.result);
             if (data.contract_terms) {
                 data.contract_terms.forEach(word => titleWordLibrary.add(word));
-                alert("Title Library Updated");
+                alert("Titles Added");
             } else {
                 globalContractData = data;
-                alert("Ledger Database Imported");
+                alert("Database Loaded");
             }
         };
         reader.readAsText(event.target.files[0]);
@@ -112,6 +107,12 @@
 
     function addContract(initialData = null) {
         const id = Date.now() + Math.floor(Math.random() * 1000);
+        
+        // Generate System options ONLY if systemMap exists
+        const systemOptions = systemMap ? 
+            `<option value="">-- System --</option>` + Object.keys(systemMap).map(s => `<option value="${s}">${s}</option>`).join('') :
+            `<option value="">Upload locations.json first</option>`;
+
         const html = `
             <div class="contract-card" id="c-${id}" data-id="${id}">
                 <button class="btn btn-delete" onclick="document.getElementById('c-${id}').remove()">×</button>
@@ -134,10 +135,9 @@
                         <span class="section-label">Origin (Pickup)</span>
                         <div class="row">
                             <select class="c-p-system" id="p-sys-${id}" onchange="updateRegionDropdown('${id}', 'p')">
-                                <option value="">-- System --</option>
-                                ${Object.keys(systemMap).map(s => `<option value="${s}">${s}</option>`).join('')}
+                                ${systemOptions}
                             </select>
-                            <select class="c-p-region" id="p-reg-${id}"><option value="">Select System First</option></select>
+                            <select class="c-p-region" id="p-reg-${id}"><option value="">-- Region --</option></select>
                         </div>
                         <div class="manifest-area" id="p-man-${id}"></div>
                         <button class="btn" style="font-size:0.7rem" onclick="addManifestItem('${id}')">+ Add Pickup Slot</button>
@@ -147,10 +147,9 @@
                         <span class="section-label">Destination (Delivery)</span>
                         <div class="row">
                             <select class="c-d-system" id="d-sys-${id}" onchange="updateRegionDropdown('${id}', 'd')">
-                                <option value="">-- System --</option>
-                                ${Object.keys(systemMap).map(s => `<option value="${s}">${s}</option>`).join('')}
+                                ${systemOptions}
                             </select>
-                            <select class="c-d-region" id="d-reg-${id}"><option value="">Select System First</option></select>
+                            <select class="c-d-region" id="d-reg-${id}"><option value="">-- Region --</option></select>
                         </div>
                         <div class="manifest-area" id="d-man-${id}"></div>
                     </div>
@@ -163,7 +162,8 @@
         const sysVal = document.getElementById(`${type}-sys-${id}`).value;
         const regSelect = document.getElementById(`${type}-reg-${id}`);
         regSelect.innerHTML = '<option value="">-- Region --</option>';
-        if (systemMap[sysVal]) {
+        
+        if (systemMap && systemMap[sysVal]) {
             systemMap[sysVal].forEach(region => {
                 const opt = document.createElement('option');
                 opt.value = region;
