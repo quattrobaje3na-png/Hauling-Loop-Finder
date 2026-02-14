@@ -23,7 +23,6 @@
         .contract-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 25px; margin-bottom: 20px; position: relative; }
         .section-label { font-size: 0.75rem; color: var(--primary); font-weight: bold; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid var(--border); display: block; }
         
-        /* Fixed Alignment: Flex-start ensures both columns start at the same top line */
         .card-main-row { display: flex; gap: 25px; align-items: flex-start; }
         .column { flex: 1; display: flex; flex-direction: column; }
 
@@ -40,7 +39,6 @@
         .btn-add { background: var(--primary); color: white; }
         .btn-delete { background: #aa0000; color: white; padding: 5px 10px; position: absolute; right: 15px; top: 15px; }
         
-        /* Tiered Dropdowns Grid */
         .tier-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; width: 100%; }
     </style>
 </head>
@@ -152,11 +150,16 @@
                 const reg = initialData[`${type}Region`];
                 const zone = initialData[`${type}Zone`];
                 if (sys) {
-                    document.getElementById(`${type}-sys-${id}`).value = sys;
-                    populateRegions(id, type, reg);
-                    if (reg) {
-                        populateZones(id, type, zone);
-                    }
+                    const sysEl = document.getElementById(`${type}-sys-${id}`);
+                    sysEl.value = sys;
+                    populateRegions(id, type);
+                    
+                    const regEl = document.getElementById(`${type}-reg-${id}`);
+                    regEl.value = reg;
+                    populateZones(id, type);
+                    
+                    const zoneEl = document.getElementById(`${type}-zone-${id}`);
+                    zoneEl.value = zone;
                 }
             };
             loadTier('p'); loadTier('d');
@@ -164,32 +167,36 @@
         }
     }
 
-    function populateRegions(id, type, preSelect = null) {
+    function populateRegions(id, type) {
         const sysVal = document.getElementById(`${type}-sys-${id}`).value;
         const regSelect = document.getElementById(`${type}-reg-${id}`);
         const zoneSelect = document.getElementById(`${type}-zone-${id}`);
+        
         regSelect.innerHTML = '<option value="">-- Region --</option>';
         zoneSelect.innerHTML = '<option value="">-- Zone --</option>';
-        if (systemMap[sysVal]) {
+
+        if (sysVal && systemMap[sysVal]) {
             Object.keys(systemMap[sysVal]).forEach(reg => {
                 const opt = document.createElement('option');
-                opt.value = reg; opt.innerText = reg;
-                if (reg === preSelect) opt.selected = true;
+                opt.value = reg; 
+                opt.innerText = reg;
                 regSelect.appendChild(opt);
             });
         }
     }
 
-    function populateZones(id, type, preSelect = null) {
+    function populateZones(id, type) {
         const sysVal = document.getElementById(`${type}-sys-${id}`).value;
         const regVal = document.getElementById(`${type}-reg-${id}`).value;
         const zoneSelect = document.getElementById(`${type}-zone-${id}`);
+        
         zoneSelect.innerHTML = '<option value="">-- Zone --</option>';
-        if (systemMap[sysVal] && systemMap[sysVal][regVal]) {
+
+        if (sysVal && regVal && systemMap[sysVal][regVal]) {
             systemMap[sysVal][regVal].forEach(zone => {
                 const opt = document.createElement('option');
-                opt.value = zone; opt.innerText = zone;
-                if (zone === preSelect) opt.selected = true;
+                opt.value = zone; 
+                opt.innerText = zone;
                 zoneSelect.appendChild(opt);
             });
         }
@@ -198,15 +205,9 @@
     function addManifestItem(contractId, itemData = null) {
         const index = document.querySelectorAll(`#p-man-${contractId} .step-row`).length;
         const syncId = `sync-${contractId}-${index}`;
-        const phtml = `<div class="step-row" id="p-${syncId}">
-            <input type="text" class="m-item" placeholder="Commodity" value="${itemData?.item || ''}" oninput="syncData('${syncId}')">
-            <input type="number" class="m-scu" placeholder="SCU" value="${itemData?.scu || ''}" style="width:70px" oninput="syncData('${syncId}')">
-        </div>`;
+        const phtml = `<div class="step-row" id="p-${syncId}"><input type="text" class="m-item" placeholder="Commodity" value="${itemData?.item || ''}" oninput="syncData('${syncId}')"><input type="number" class="m-scu" placeholder="SCU" value="${itemData?.scu || ''}" style="width:70px" oninput="syncData('${syncId}')"></div>`;
         document.getElementById(`p-man-${contractId}`).insertAdjacentHTML('beforeend', phtml);
-        const dhtml = `<div class="step-row" id="d-${syncId}">
-            <input type="text" id="sync-item-${syncId}" value="${itemData?.item || ''}" readonly style="opacity:0.6; flex:1;">
-            <input type="number" id="sync-scu-${syncId}" value="${itemData?.scu || ''}" readonly style="opacity:0.6; width:80px;">
-        </div>`;
+        const dhtml = `<div class="step-row" id="d-${syncId}"><input type="text" id="sync-item-${syncId}" value="${itemData?.item || ''}" readonly style="opacity:0.6; flex:1;"><input type="number" id="sync-scu-${syncId}" value="${itemData?.scu || ''}" readonly style="opacity:0.6; width:80px;"></div>`;
         document.getElementById(`d-man-${contractId}`).insertAdjacentHTML('beforeend', dhtml);
     }
 
