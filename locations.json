@@ -1,4 +1,5 @@
 {
+ {
   "Stanton": {
     "ArcCorp": ["Area18", "Area04", "Area06", "Area17", "Baijini Point", "ARC-L1", "ARC-L2", "ARC-L3", "ARC-L4", "ARC-L5"],
     "Wala": ["Shady Glen Farms", "ArcCorp Mining Area 045", "ArcCorp Mining Area 048", "ArcCorp Mining Area 056", "ArcCorp Mining Area 061", "ArcCorp Processing Center 115", "ArcCorp Processing Center 123", "Lost and Found", "Good Times Temple", "Samson & Sons Salvage Center"],
@@ -14,7 +15,9 @@
     "Yela": ["GrimHEX", "Dagger", "Unnamed abandoned outpost", "ArcCorp Mining Area 157", "Aston Ridge Aid Shelter", "Benson Mining Outpost", "Connor's", "Deakins Research Outpost", "Rayari Inc.", "Kosso Basin Aid Shelter", "Nakamura Valley Aid Shelter", "Talarine Divide Aid Shelter"],
     "microTech": ["New Babbage", "Port Tressler", "MIC-L1", "MIC-L4", "MIC-L5", "Avalon", "Frostbite", "Ghost Hollow"],
     "Calliope": ["Astrid"],
-    "Deep Space": ["Delamar", "Comm Array 157", "Comm Array 327", "Comm Array 537", "Cry-Astro Station 042"]
+    "Clio": [],
+    "Euterpe": [],
+    "Deep Space": ["Comm Array 157", "Comm Array 327", "Comm Array 537", "Cry-Astro Station 042"]
   },
   "Pyro": {
     "Pyro I": ["Gray Gardens Depot", "Rustville", "Stag's Rut", "Stanton Gateway"],
@@ -24,8 +27,8 @@
     "Pyro V": ["PYR5-L2 (Gaslight)", "PYR5-L4 (Rod's Fuel)", "PYR5-L5 (Rat's Nest)"],
     "Pyro VI (Terminus)": ["Blackrock Exchange", "Bullock's Reach", "Canard View", "Kinder Plots", "Last Landings", "Rough Landing", "Scarper's Turn", "Stonetree", "Supply Gap", "Watcher's Depot", "Ruin Station", "PYR6-L3 (Endgame)", "PYR6-L4 (Dudley & Daughters)", "PYR6-L5 (Megumi Refueling)"],
     "Jump Points": ["Stanton Gateway", "Nyx Gateway"]
-  }
   },
   "Nyx": {
     "Delamar": ["Levski", "Mining Area 157"]
   }
+}
