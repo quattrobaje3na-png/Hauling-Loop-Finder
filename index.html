@@ -97,10 +97,11 @@
 
 <script>
     let globalContractData = [];
-    let titleWordLibrary = new Set(["Bulk", "Haul", "Small", "Scale", "Medium", "Covalex", "Independent", "Red", "Wind", "Distribution"]);
+    let titleWordLibrary = new Set(["Bulk", "Haul", "Cargo", "Covalex", "Red", "Wind"]);
 
     function addContract(initialData = null) {
         const id = Date.now() + Math.floor(Math.random() * 1000);
+        
         const html = `
             <div class="contract-card" id="c-${id}" data-id="${id}">
                 <div class="card-controls">
@@ -162,23 +163,18 @@
         }
     }
 
-    // NEW LOGIC: Preditive text based on individual words
     function handleTitlePrediction(input) {
         const val = input.value;
         const words = val.split(/\s+/);
         const currentWord = words[words.length - 1].toLowerCase();
         const datalist = document.getElementById('dynamic-title-words');
-        
-        datalist.innerHTML = ''; // Clear previous suggestions
+        datalist.innerHTML = ''; 
 
         if (currentWord.length > 0) {
-            const matches = Array.from(titleWordLibrary).filter(w => 
-                w.toLowerCase().startsWith(currentWord)
-            );
-
-            matches.forEach(match => {
-                // Reconstruct the string with the suggested word
-                const suggestion = words.slice(0, -1).join(" ") + (words.length > 1 ? " " : "") + match;
+            Array.from(titleWordLibrary).filter(w => w.toLowerCase().startsWith(currentWord))
+            .forEach(match => {
+                const prefix = words.slice(0, -1).join(" ");
+                const suggestion = (prefix ? prefix + " " : "") + match;
                 const option = document.createElement('option');
                 option.value = suggestion;
                 datalist.appendChild(option);
@@ -216,70 +212,35 @@
 
     function toggleMinimize(id) { document.getElementById(`c-${id}`).classList.toggle('minimized'); }
 
-    function exportToJson() {
-        const screenContracts = [];
-        document.querySelectorAll('.contract-card').forEach(card => {
-            const id = card.dataset.id;
-            screenContracts.push({
-                category: card.querySelector('.c-category').value,
-                name: card.querySelector('.c-name').value,
-                payout: card.querySelector('.c-payout').value,
-                pSystem: card.querySelector('.c-p-system').value,
-                pRegion: card.querySelector('.c-p-region').value,
-                dSystem: card.querySelector('.c-d-system').value,
-                dRegion: card.querySelector('.c-d-region').value,
-                pManifest: Array.from(card.querySelectorAll(`#p-man-${id} .step-row`)).map(row => ({
-                    item: row.querySelector('.m-item').value,
-                    scu: row.querySelector('.m-scu').value,
-                    loc: row.querySelector('.m-loc').value
-                })),
-                dManifest: Array.from(card.querySelectorAll(`#d-man-${id} .step-row`)).map(row => ({
-                    item: row.querySelector('.m-item').value,
-                    scu: row.querySelector('.m-scu').value,
-                    loc: row.querySelector('.m-loc').value
-                }))
-            });
-        });
-
-        const nameSet = new Set(screenContracts.map(c => c.name));
-        const merged = [...screenContracts, ...globalContractData.filter(c => !nameSet.has(c.name))];
-        const blob = new Blob([JSON.stringify(merged, null, 2)], { type: 'application/json' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `hauling_master_db.json`;
-        a.click();
-    }
-
     function importJson(event) {
         const reader = new FileReader();
         reader.onload = e => {
-            globalContractData = JSON.parse(e.target.result);
-            processJsonForPredictiveText();
+            const data = JSON.parse(e.target.result);
+            if (data.contract_terms) {
+                data.contract_terms.forEach(word => titleWordLibrary.add(word));
+            } else {
+                globalContractData = data;
+                processJsonForPredictiveText();
+                document.getElementById('db-count').innerText = `DATABASE: ${globalContractData.length} CONTRACTS`;
+            }
             updateSuggestions();
-            document.getElementById('db-count').innerText = `DATABASE: ${globalContractData.length} CONTRACTS`;
         };
         reader.readAsText(event.target.files[0]);
     }
 
-    // NEW FUNCTION: Extract unique words and terms from JSON for lists
     function processJsonForPredictiveText() {
         const commoditySet = new Set();
         const systemSet = new Set();
         const regionSet = new Set();
 
         globalContractData.forEach(c => {
-            // Extract Title Words
             c.name.split(/\s+/).forEach(word => {
                 if(word.length > 2) titleWordLibrary.add(word.replace(/[^a-zA-Z]/g, ""));
             });
-            
-            // Extract Systems/Regions
             if(c.pSystem) systemSet.add(c.pSystem);
             if(c.dSystem) systemSet.add(c.dSystem);
             if(c.pRegion) regionSet.add(c.pRegion);
             if(c.dRegion) regionSet.add(c.dRegion);
-
-            // Extract Commodities
             c.pManifest.forEach(m => commoditySet.add(m.item));
         });
 
@@ -304,6 +265,39 @@
     }
 
     function removeElement(id) { document.getElementById(id).remove(); }
+
+    function exportToJson() {
+        const screenContracts = [];
+        document.querySelectorAll('.contract-card').forEach(card => {
+            const id = card.dataset.id;
+            screenContracts.push({
+                category: card.querySelector('.c-category').value,
+                name: card.querySelector('.c-name').value,
+                payout: card.querySelector('.c-payout').value,
+                pSystem: card.querySelector('.c-p-system').value,
+                pRegion: card.querySelector('.c-p-region').value,
+                dSystem: card.querySelector('.c-d-system').value,
+                dRegion: card.querySelector('.c-d-region').value,
+                pManifest: Array.from(card.querySelectorAll(`#p-man-${id} .step-row`)).map(row => ({
+                    item: row.querySelector('.m-item').value,
+                    scu: row.querySelector('.m-scu').value,
+                    loc: row.querySelector('.m-loc').value
+                })),
+                dManifest: Array.from(card.querySelectorAll(`#d-man-${id} .step-row`)).map(row => ({
+                    item: row.querySelector('.m-item').value,
+                    scu: row.querySelector('.m-scu').value,
+                    loc: row.querySelector('.m-loc').value
+                }))
+            });
+        });
+        const nameSet = new Set(screenContracts.map(c => c.name));
+        const merged = [...screenContracts, ...globalContractData.filter(c => !nameSet.has(c.name))];
+        const blob = new Blob([JSON.stringify(merged, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `hauling_master_db.json`;
+        a.click();
+    }
 </script>
 </body>
 </html>
